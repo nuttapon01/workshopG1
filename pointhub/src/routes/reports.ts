@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
+import { logger } from '../middleware/logger';
 
 export const reportsRouter = Router();
 
@@ -28,6 +29,8 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
     // Points expire 12 months after the month earned
     // earned_month + 12 months = expiry date
     // So if earned_month = '2026-01-01', expires at end of '2027-01-31'
+    // NOTE: We sum EARN + EXPIRY entries per earned_month so that already-expired
+    // points are not double-counted in projections.
     const now = new Date();
     // Use Bangkok time for "now"
     const bangkokNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
@@ -39,8 +42,9 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
          COALESCE(SUM(pl.points), 0) AS points
        FROM points_ledger pl
        WHERE pl.earned_month IS NOT NULL
-         AND pl.entry_type = 'EARN'
+         AND pl.entry_type IN ('EARN', 'EXPIRY')
        GROUP BY pl.earned_month
+       HAVING SUM(pl.points) > 0
        ORDER BY pl.earned_month`
     );
 
@@ -84,7 +88,7 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
       generatedAt: bangkokNow.toISOString(),
     });
   } catch (err: any) {
-    console.error('Report error:', err);
+    logger.error({ err }, 'Report error');
     return res.status(500).json({ error: 'Internal server error', detail: err.message });
   }
 });
