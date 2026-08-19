@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PointHub — Project Summary Presentation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; }
+    
+    .slide-container { width: 100vw; height: 100vh; overflow: hidden; position: relative; }
+    
+    .slide {
+      width: 100vw; height: 100vh;
+      display: none; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 60px 80px;
+      position: absolute; top: 0; left: 0;
+      animation: fadeIn 0.4s ease;
+    }
+    .slide.active { display: flex; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    h1 { font-size: 3.2rem; font-weight: 700; margin-bottom: 10px; color: #fff; text-align: center; }
+    h2 { font-size: 2.4rem; font-weight: 600; margin-bottom: 30px; color: #38bdf8; text-align: center; }
+    h3 { font-size: 1.6rem; font-weight: 600; margin-bottom: 16px; color: #7dd3fc; }
+    
+    .subtitle { font-size: 1.4rem; color: #94a3b8; margin-bottom: 40px; text-align: center; }
+    
+    .content { max-width: 1100px; width: 100%; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; width: 100%; }
+    
+    .card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); border-color: #38bdf8; }
+    
+    .card-title { font-size: 1.1rem; font-weight: 600; color: #38bdf8; margin-bottom: 12px; }
+    .card p, .card li { font-size: 0.95rem; color: #cbd5e1; line-height: 1.6; }
+    .card ul { padding-left: 20px; }
+    .card ul li { margin-bottom: 6px; }
+    
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600; margin: 3px;
+    }
+    .badge-blue { background: #1e3a5f; color: #7dd3fc; }
+    .badge-green { background: #14532d; color: #86efac; }
+    .badge-amber { background: #451a03; color: #fcd34d; }
+    .badge-red { background: #450a0a; color: #fca5a5; }
+    .badge-purple { background: #3b0764; color: #d8b4fe; }
+    
+    .stat-row { display: flex; gap: 30px; justify-content: center; margin: 30px 0; flex-wrap: wrap; }
+    .stat {
+      text-align: center; padding: 20px 30px;
+      background: rgba(30, 41, 59, 0.6); border-radius: 12px;
+      border: 1px solid #334155;
+    }
+    .stat-number { font-size: 2.8rem; font-weight: 700; color: #38bdf8; }
+    .stat-label { font-size: 0.9rem; color: #94a3b8; margin-top: 4px; }
+    
+    .timeline {
+      position: relative; padding-left: 30px;
+      border-left: 3px solid #334155;
+    }
+    .timeline-item {
+      position: relative; margin-bottom: 24px; padding-left: 20px;
+    }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -36px; top: 6px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #38bdf8; border: 2px solid #0f172a;
+    }
+    .timeline-item.done::before { background: #22c55e; }
+    
+    .arch-diagram {
+      background: #1e293b; border-radius: 12px; padding: 30px;
+      font-family: 'Courier New', monospace; font-size: 0.85rem;
+      color: #7dd3fc; white-space: pre; line-height: 1.5;
+      overflow-x: auto; border: 1px solid #334155;
+    }
+    
+    .nav {
+      position: fixed; bottom: 30px; right: 40px;
+      display: flex; gap: 10px; z-index: 100;
+    }
+    .nav button {
+      padding: 10px 20px; border: 1px solid #475569;
+      background: #1e293b; color: #e2e8f0; border-radius: 8px;
+      cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
+    }
+    .nav button:hover { background: #334155; border-color: #38bdf8; }
+    
+    .page-indicator {
+      position: fixed; bottom: 35px; left: 40px;
+      font-size: 0.85rem; color: #64748b; z-index: 100;
+    }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+    th { color: #38bdf8; font-weight: 600; }
+    td { color: #cbd5e1; }
+    
+    .highlight { color: #fbbf24; font-weight: 600; }
+    .text-green { color: #22c55e; }
+    .text-blue { color: #38bdf8; }
+    .text-center { text-align: center; }
+    
+    .wave-header { font-size: 1.2rem; font-weight: 600; color: #fbbf24; margin: 16px 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    
+    <!-- Slide 1: Title -->
+    <div class="slide active" id="slide-1">
+      <h1>PointHub</h1>
+      <h2>Loyalty Points & Rewards Service</h2>
+      <p class="subtitle">Siam MegaMart — Group 1 Retail</p>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-number">120</div><div class="stat-label">Stores</div></div>
+        <div class="stat"><div class="stat-number">800K</div><div class="stat-label">Members</div></div>
+        <div class="stat"><div class="stat-number">50</div><div class="stat-label">tx/sec peak</div></div>
+        <div class="stat"><div class="stat-number">5</div><div class="stat-label">Campaigns</div></div>
+      </div>
+      <p style="color:#64748b; margin-top:30px; font-size:0.9rem;">Press <span class="text-blue">→</span> or click Next to navigate</p>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide" id="slide-2">
+      <h2>Problem Statement</h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-title">Duplicated Logic</div>
+          <p>Points logic in 3 systems (POS, e-commerce, mobile) — they disagree. 400 dispute tickets/month.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Slow Campaigns</div>
+          <p>Marketing cannot run promotions without a 3-4 week IT change request. Want 1-day turnaround.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">No Self-Service</div>
+          <p>CS agents must phone IT to check a balance or fix a dispute. 10-30 min per case.</p>
+        </div>
+      </div>
+      <div style="margin-top:40px; text-align:center;">
+        <span class="badge badge-red">4 weeks campaign lead time</span>
+        <span class="badge badge-red">400 disputes/month</span>
+        <span class="badge badge-red">No single liability report</span>
+      </div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide" id="slide-3">
+      <h2>Solution: PointHub Service</h2>
+      <div class="content">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Centralized API</div>
+            <ul>
+              <li>Earn points (base 25 THB = 1 pt + campaign multipliers)</li>
+              <li>Burn/redeem (1 pt = 0.25 THB, min 100, cap 50%)</li>
+              <li>Refunds with smart clawback</li>
+              <li>Campaign CRUD (activate in 1 day)</li>
+              <li>Manual adjustments with audit trail</li>
+              <li>Finance liability report</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Key Features</div>
+            <ul>
+              <li><strong>Best-wins</strong> — no campaign stacking</li>
+              <li><strong>Integer arithmetic</strong> — milli-points, no floating point</li>
+              <li><strong>Idempotent</strong> — POS retry-safe</li>
+              <li><strong>Deterministic</strong> — replay = same results</li>
+              <li><strong>CS Screen</strong> — self-service for agents</li>
+              <li><strong>Point Expiry</strong> — 12 months auto-expire</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Architecture -->
+    <div class="slide" id="slide-4">
+      <h2>Architecture</h2>
+      <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────┐
+│                    CS Agent Browser                       │
+│              React SPA (Ant Design + Webpack)             │
+└────────────────────────┬────────────────────────────────┘
+                         │ fetch /api/*
+┌────────────────────────▼────────────────────────────────┐
+│                   Express Server (:3000)                  │
+│                                                          │
+│  Routes: earn│refund│burn│members│campaigns│adj│reports│admin│
+│  Middleware: pino-http │ error-handler │ Zod validation   │
+│  Engine: calculate-points.ts (milli-point integer math)  │
+│  Jobs: expire-points.ts                                  │
+│  DB: pg Pool (raw SQL — no ORM)                          │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────┐
+│              PostgreSQL 15 (Docker)                       │
+│  members│campaigns│transactions│transaction_lines│ledger  │
+└─────────────────────────────────────────────────────────┘</div>
+      <div style="margin-top:20px; text-align:center;">
+        <span class="badge badge-blue">TypeScript</span>
+        <span class="badge badge-blue">Express 4.18</span>
+        <span class="badge badge-blue">PostgreSQL 15</span>
+        <span class="badge badge-green">React 18</span>
+        <span class="badge badge-green">Ant Design 5</span>
+        <span class="badge badge-purple">Jest</span>
+        <span class="badge badge-amber">pino</span>
+      </div>
+    </div>
+
+    <!-- Slide 5: Business Rules -->
+    <div class="slide" id="slide-5">
+      <h2>Business Rules Engine</h2>
+      <div class="content">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Campaign Matching</div>
+            <table>
+              <tr><th>Rule</th><th>Behavior</th></tr>
+              <tr><td>Stacking</td><td>Best single multiplier wins</td></tr>
+              <tr><td>Tie-break</td><td>Higher priority → alphabetical ID</td></tr>
+              <tr><td>Rounding</td><td>Floor once per basket (milli-points ÷ 1000)</td></tr>
+              <tr><td>x2.5 multiplier</td><td>Stored as 2500 millipercent (integer)</td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-title">5 Active Campaigns</div>
+            <table>
+              <tr><th>ID</th><th>Name</th><th>Multiplier</th></tr>
+              <tr><td>C1</td><td>Fresh Weekend</td><td>x3 (FRESH, Sat-Sun)</td></tr>
+              <tr><td>C2</td><td>Gold Boost</td><td>x2 (GOLD only)</td></tr>
+              <tr><td>C3</td><td>Platinum Everyday</td><td>x2.5 (always-on)</td></tr>
+              <tr><td>C4</td><td>Payday Splurge</td><td>x5 (25-28 Sep)</td></tr>
+              <tr><td>C5</td><td>Home & Living</td><td>x2 (HOME category)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Team & Units -->
+    <div class="slide" id="slide-6">
+      <h2>Team & Work Distribution</h2>
+      <div class="content">
+        <div class="grid-3">
+          <div class="card" style="border-color:#38bdf8;">
+            <div class="card-title">Dev A — CS UI</div>
+            <p><strong>8 tasks</strong> | Wave 2</p>
+            <ul>
+              <li>React + Ant Design SPA</li>
+              <li>Member lookup</li>
+              <li>Transaction history</li>
+              <li>Adjustment form</li>
+              <li>Offline compliance</li>
+            </ul>
+            <p style="margin-top:10px;"><span class="badge badge-blue">US-001–004</span></p>
+          </div>
+          <div class="card" style="border-color:#22c55e;">
+            <div class="card-title">Dev B — Foundation + Expiry</div>
+            <p><strong>12 tasks</strong> | Wave 1 + 2</p>
+            <ul>
+              <li>Jest + test helpers</li>
+              <li>ESLint + Prettier</li>
+              <li>pino logging</li>
+              <li>Expiry job + endpoint</li>
+              <li>Metrics + graceful shutdown</li>
+            </ul>
+            <p style="margin-top:10px;"><span class="badge badge-green">US-005, US-010</span></p>
+          </div>
+          <div class="card" style="border-color:#a78bfa;">
+            <div class="card-title">Dev C — Validation</div>
+            <p><strong>8 tasks</strong> | Wave 3</p>
+            <ul>
+              <li>Engine unit tests</li>
+              <li>Route-level API tests</li>
+              <li>Integration replay</li>
+              <li>Balance verification</li>
+            </ul>
+            <p style="margin-top:10px;"><span class="badge badge-purple">US-006–012</span></p>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:20px;">
+          <span class="badge badge-amber">BA: Cross-unit review, acceptance testing, stakeholder coordination</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Execution Plan -->
+    <div class="slide" id="slide-7">
+      <h2>Execution Waves</h2>
+      <div class="content" style="max-width:900px;">
+        <div class="timeline">
+          <div class="timeline-item done">
+            <h3>Wave 1: Foundation (Dev B) — 3-4 hours</h3>
+            <p>Jest setup, test DB lifecycle, shared helpers, ESLint/Prettier, pino logging, error handler</p>
+            <p style="color:#22c55e; margin-top:6px;">Sync point: merge test framework → Dev A & C start using it</p>
+          </div>
+          <div class="timeline-item">
+            <h3>Wave 2: Features (Dev A + Dev B parallel) — 6-8 hours</h3>
+            <p><strong>Dev A:</strong> React SPA (init → components → build → verify offline)</p>
+            <p><strong>Dev B:</strong> Expiry job + admin endpoint + readiness + shutdown + metrics</p>
+          </div>
+          <div class="timeline-item">
+            <h3>Wave 3: Validation (Dev C) — 6-8 hours</h3>
+            <p>Unit tests (engine) → Route tests (all endpoints) → Integration replay (43 transactions → 8 balances)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: Success Metrics -->
+    <div class="slide" id="slide-8">
+      <h2>Success Metrics</h2>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-number">4w → 1d</div>
+          <div class="stat-label">Campaign Lead Time</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">&lt;150ms</div>
+          <div class="stat-label">Earn API p95</div>
+        </div>
+        <div class="stat">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Balance Mismatches</div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:30px; max-width:900px;">
+        <div class="card">
+          <div class="card-title">Verification</div>
+          <ul>
+            <li>43 transactions replayed</li>
+            <li>8 member balances exact match</li>
+            <li>Finance reproducibility: 100%</li>
+            <li>All 5 campaigns correctly resolved</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">Expected Final Balances</div>
+          <table>
+            <tr><td>M1001</td><td class="highlight">383</td><td>M1005</td><td class="highlight">567</td></tr>
+            <tr><td>M1002</td><td class="highlight">254</td><td>M1006</td><td class="highlight">452</td></tr>
+            <tr><td>M1003</td><td class="highlight">374</td><td>M1007</td><td class="highlight">624</td></tr>
+            <tr><td>M1004</td><td class="highlight">156</td><td>M1008</td><td class="highlight">78</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 9: AI-DLC Workflow -->
+    <div class="slide" id="slide-9">
+      <h2>AI-DLC Specification Workflow</h2>
+      <div class="content" style="max-width:1000px;">
+        <div class="grid-2">
+          <div>
+            <h3>Phases Completed</h3>
+            <div class="timeline">
+              <div class="timeline-item done"><p><strong>Context</strong> — Workspace scan, brownfield assessment</p></div>
+              <div class="timeline-item done"><p><strong>Requirements</strong> — 12 user stories, EARS criteria, persona</p></div>
+              <div class="timeline-item done"><p><strong>Decomposition</strong> — 3 parallel units for 3 devs</p></div>
+              <div class="timeline-item done"><p><strong>Design</strong> — 7 design docs (components, API, data, tests)</p></div>
+              <div class="timeline-item done"><p><strong>Tasks</strong> — 28 tasks across 3 execution waves</p></div>
+            </div>
+          </div>
+          <div>
+            <h3>Artifacts Generated</h3>
+            <div class="card" style="font-size:0.85rem;">
+              <ul>
+                <li><code>.aidlc/specs/pointhub/context.md</code></li>
+                <li><code>.aidlc/specs/pointhub/requirements.md</code></li>
+                <li><code>.aidlc/specs/pointhub/personas.md</code></li>
+                <li><code>.aidlc/specs/pointhub/units.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/components.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/data-model.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/api-spec.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/implementation.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/testing-strategy.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/operations.md</code></li>
+                <li><code>.aidlc/specs/pointhub/design/integration.md</code></li>
+                <li><code>.aidlc/specs/pointhub/tasks.md</code></li>
+              </ul>
+            </div>
+            <h3 style="margin-top:20px;">Decision Gates</h3>
+            <p style="font-size:0.9rem; color:#94a3b8;">D1 (Requirements) → D2 (Units) → D3 (Design) → D4 (Tasks)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: Thank you -->
+    <div class="slide" id="slide-10">
+      <h1>Ready to Implement</h1>
+      <p class="subtitle">28 tasks | 3 developers | 3 waves | ~2 days</p>
+      <div class="stat-row">
+        <div class="stat"><div class="stat-number">12</div><div class="stat-label">User Stories</div></div>
+        <div class="stat"><div class="stat-number">15</div><div class="stat-label">API Endpoints</div></div>
+        <div class="stat"><div class="stat-number">28</div><div class="stat-label">Tasks</div></div>
+        <div class="stat"><div class="stat-number">5</div><div class="stat-label">Phases Done</div></div>
+      </div>
+      <div style="margin-top:40px; text-align:center;">
+        <p style="font-size:1.2rem; color:#94a3b8;">GitHub: <a href="https://github.com/nuttapon01/workshopG1" style="color:#38bdf8;">github.com/nuttapon01/workshopG1</a></p>
+        <p style="margin-top:16px; color:#64748b; font-size:0.9rem;">Group 1 Retail — Siam MegaMart PointHub</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="page-indicator"><span id="current-page">1</span> / <span id="total-pages">10</span></div>
+  <div class="nav">
+    <button onclick="prevSlide()">← Prev</button>
+    <button onclick="nextSlide()">Next →</button>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 10;
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      document.getElementById(`slide-${n}`).classList.add('active');
+      document.getElementById('current-page').textContent = n;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) { currentSlide++; showSlide(currentSlide); }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) { currentSlide--; showSlide(currentSlide); }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+    });
+  </script>
+</body>
+</html>

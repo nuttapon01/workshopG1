@@ -22,3 +22,4 @@
 | 2026-08-19T13:54:00+07:00 | tasks | decision-gate | D4 decisions: by-unit, test-after, foundation-first, mock-first, single-concern, sync-after-foundation. |
 | 2026-08-19T13:55:00+07:00 | tasks | generation | Generated 28 tasks across 6 phases, 3 execution waves. Dev A: 8 tasks (CS UI), Dev B: 12 tasks (Foundation+Expiry+Ops), Dev C: 8 tasks (Tests). |
 | 2026-08-19T13:57:00+07:00 | tasks | approval | Tasks approved. 28 tasks across 3 waves. Moving to implementation. |
+| 2026-08-19T14:10:00+07:00 | decomposition | edit | Added Unit 4: QA Testing (Test1). 52 test cases across 5 sections. Tests Dev A/B/C deliverables + cross-unit integration. |

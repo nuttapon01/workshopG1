@@ -1,16 +1,16 @@
 # Units of Work
 
 ## Summary
-- **Units**: 3 units — Customer-Service UI (Dev A), Expiry + Foundation (Dev B), Validation & Testing (Dev C)
+- **Units**: 4 units — Customer-Service UI (Dev A), Expiry + Foundation (Dev B), Validation & Testing (Dev C), QA Testing (Test1)
 - **Strategy**: Layer-Based (frontend, backend jobs, tests — within a monolith)
 - **Architecture**: Modular Monolith (logical units in single codebase, shared DB)
-- **Story Distribution**: CS UI: 4 stories, Expiry+Foundation: 2 stories + infra, Validation: 6 stories
-- **Key Dependencies**: None blocking — all 3 units can start in parallel (existing API and DB are stable)
-- **Development Sequence**: All parallel (Phase 1) → Integration verification (Phase 2)
-- **Team**: Dev A (CS UI), Dev B (Expiry + Foundation), Dev C (Validation), BA (cross-unit review + test scenarios)
+- **Story Distribution**: CS UI: 4 stories, Expiry+Foundation: 2 stories + infra, Validation: 6 stories, QA: 52 test cases
+- **Key Dependencies**: None blocking — all 3 dev units can start in parallel; Test1 starts testing as each dev delivers
+- **Development Sequence**: All parallel (Phase 1) → Integration verification (Phase 2) → QA sign-off (Phase 3)
+- **Team**: Dev A (CS UI), Dev B (Expiry + Foundation), Dev C (Validation), Test1 (QA), BA (cross-unit review + test scenarios)
 
 ## Overview
-Feature decomposed into 3 parallel units — one per developer. The existing backend API is stable and complete, so all units can start simultaneously without blocking dependencies.
+Feature decomposed into 4 units — one per developer + one for QA tester. The existing backend API is stable and complete, so all dev units can start simultaneously without blocking dependencies. Test1 begins testing incrementally as each dev delivers.
 
 **Strategy**: Layer-Based
 **Rationale**: Remaining work divides cleanly by technical layer: UI (frontend), background job + test infra (backend), and test suite (quality). Each developer owns a complete vertical slice.
@@ -174,7 +174,62 @@ Can start immediately — write tests against existing code. Uses test framework
 - [ ] BA acceptance testing
 - [ ] Final replay verification (all balances match)
 
+### Phase 3: QA Sign-off (Day 2–3)
+- [ ] Test1: Section A (Dev B deliverables) — available once Dev B merges Wave 1+2
+- [ ] Test1: Section B (Dev A deliverables) — available once Dev A merges Wave 2
+- [ ] Test1: Section C (Dev C deliverables) — available once Dev C merges Wave 3
+- [ ] Test1: Section D (Cross-unit integration) — available after all devs merge
+- [ ] Test1: Section E (Non-functional) — final verification
+- [ ] Sign-off: All 52 test cases passed
+
 ### Coordination Points
 - **Day 1 morning**: Dev B shares Vitest config + DB helpers → Dev A & C pull
 - **Day 1 end**: Dev A demo UI wireframe to BA for feedback
+- **Day 1 end**: Test1 begins Section A testing (Dev B foundation ready)
 - **Day 2**: Dev C runs full replay → validates Dev B's expiry against liability report
+- **Day 2**: Test1 begins Section B testing (Dev A UI ready)
+- **Day 2–3**: Test1 runs Section D + E (all merged)
+
+---
+
+## Unit 4: QA Testing (Test1)
+
+**Purpose**: Independent QA verification of all deliverables from Dev A, Dev B, and Dev C. Execute 52 manual/automated test cases covering functional, integration, and non-functional requirements.
+**Owner**: Test1 (QA Tester)
+**Priority**: High
+**Complexity**: Medium
+**Stories**: Validates all 12 stories (US-001 through US-012)
+
+### Responsibilities
+- Execute test plan (`test-plan-test1.md`) — 52 test cases across 5 sections
+- Verify Dev B: Foundation (Jest, ESLint), Expiry job, Operations (logging, health, metrics, shutdown)
+- Verify Dev A: CS UI (member lookup, history, adjustments, offline compliance)
+- Verify Dev C: Unit tests pass, route tests pass, integration replay matches expected balances
+- Cross-unit integration: end-to-end scenarios, idempotency, campaign scenarios, burn rules
+- Non-functional: latency, concurrency, data integrity, reproducibility
+- Log defects with severity, assign back to responsible dev
+- Re-test after fixes
+- Sign-off when all 52 tests pass
+
+### Test Sections
+
+| Section | Tests | Tests For | Can Start When |
+|---------|-------|-----------|----------------|
+| A: Foundation + Expiry + Ops | 14 | Dev B | Dev B merges Wave 1+2 |
+| B: CS UI | 15 | Dev A | Dev A merges Wave 2 |
+| C: Test Suite Verification | 6 | Dev C | Dev C merges Wave 3 |
+| D: Cross-Unit Integration | 13 | All devs | All merged |
+| E: Non-Functional | 4 | All | All merged |
+
+### Dependencies
+| Depends On | Type | Description |
+|------------|------|-------------|
+| Dev B (Wave 1+2) | Deliverable | Foundation + Expiry must be merged for Section A |
+| Dev A (Wave 2) | Deliverable | CS UI must be built and served for Section B |
+| Dev C (Wave 3) | Deliverable | Test suite must be complete for Section C |
+| All devs merged | Integration | Cross-unit tests require full system |
+
+### Deliverables
+- Completed `test-plan-test1.md` with all Pass/Fail columns filled
+- Defect log with all issues found and their resolution status
+- Sign-off sheet with all roles signed
