@@ -1,0 +1,85 @@
+version: "1.0.0"
+feature: "pointhub"
+language: "en"
+platform: "kiro"
+created: "2026-08-19T13:22:00+07:00"
+updated: "2026-08-19T13:50:00+07:00"
+updated: "2026-08-19T13:32:00+07:00"
+state:
+  status: "active"
+  scope: "feature"
+  sharedPhases: ["context", "requirements", "decomposition", "design", "tasks"]
+  mode: "comprehensive"
+  foundationSkipped: false
+  implementationMode: null
+  quickPath: false
+artifacts:
+  context:
+    status: "approved"
+    timestamp: "2026-08-19T13:28:00+07:00"
+    files: [context.md]
+  requirements:
+    status: "approved"
+    timestamp: "2026-08-19T13:32:00+07:00"
+    files: [requirements.md, personas.md]
+  decomposition:
+    status: "approved"
+    timestamp: "2026-08-19T13:42:00+07:00"
+    files: [units.md]
+  design:
+    status: "approved"
+    timestamp: "2026-08-19T13:50:00+07:00"
+    files: [design.md, design/components.md, design/data-model.md, design/api-spec.md, design/integration.md, design/implementation.md, design/operations.md, design/testing-strategy.md]
+  tasks:
+    status: "approved"
+    timestamp: "2026-08-19T13:57:00+07:00"
+    files: [tasks.md]
+implementation:
+  totalTasks: 28
+  completedTasks: 0
+  currentTask: null
+  currentWave: null
+context-summary:
+  type: "Brownfield"
+  scope: "feature"
+  stack: "TypeScript / Express / PostgreSQL 15"
+  architecture: "Layered monolith"
+  feature: "Complete PointHub loyalty service — add customer-service UI, point-expiry job, and validate correctness"
+  impact: "Extends existing"
+  complexity: "Medium"
+  teamSize: null
+  recommendations:
+    personas: false
+    units: false
+    nfr: true
+decisions:
+  requirements:
+    scope: "Feature completion"
+    ui: "React/Vue SPA with build step"
+    expiry: "Hybrid — script + API endpoint via cron"
+    testing: "Full coverage (unit + route + integration)"
+    businessRules: "All confirmed (best-wins, floor, priority tie-break, recompute partial, negative allowed)"
+    personas: "CS agent only"
+    teamSize: "Medium (4-8)"
+    nfr: "Performance only (p95 < 150ms)"
+steering:
+  updatedBy:
+    product: [context, requirements]
+    tech: [context, design]
+    structure: [context, design]
+units:
+  - name: "cs-ui"
+    status: "pending"
+    phase: null
+    owner: "Dev A"
+    stories: ["US-001", "US-002", "US-003", "US-004"]
+  - name: "expiry-foundation"
+    status: "pending"
+    phase: null
+    owner: "Dev B"
+    stories: ["US-005", "US-010"]
+  - name: "validation-testing"
+    status: "pending"
+    phase: null
+    owner: "Dev C"
+    stories: ["US-006", "US-007", "US-008", "US-009", "US-011", "US-012"]

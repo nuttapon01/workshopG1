@@ -1,0 +1,39 @@
+# PointHub — the workshop database, on your own machine.
+#
+#   docker compose up -d     start it (the first run pulls the image, ~30 s)
+#   docker compose ps        it should say "healthy"
+#   node check-db.mjs        prove your machine can reach it
+#   docker compose down      stop it, keep the data
+#   docker compose down -v   stop it and throw the data away (start clean)
+#
+# Nothing here talks to the internet after the image is pulled, and nothing runs
+# in a cloud. Port 5432 is published to localhost only.
+#
+# If port 5432 is already taken — you may already run Postgres — change the LEFT
+# number below and set DATABASE_URL to match.
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pointhub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pointhub
+      POSTGRES_PASSWORD: pointhub
+      POSTGRES_DB: pointhub
+      # Deliberately left in UTC. Business dates are Asia/Bangkok (expiry month
+      # boundaries, day-of-week campaign rules) and converting them is the
+      # application's job — see technical-environment.md. A database that
+      # silently thinks in Bangkok time hides that decision instead of forcing it.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pointhub-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pointhub -d pointhub"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pointhub-data:

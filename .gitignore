@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local databases created by the starter code / seeders
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets and local artefacts - never commit these
+.env
+.env.*
+secure-store/
+*.key
+*.pem
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
