@@ -1,0 +1,21 @@
+{
+  "name": "pointhub-qa-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cypress automated test suite for PointHub — QA unit (Test1)",
+  "scripts": {
+    "cy:open": "cypress open",
+    "test": "cypress run",
+    "test:a": "cypress run --spec \"cypress/e2e/a-foundation-expiry.cy.ts\"",
+    "test:b": "cypress run --spec \"cypress/e2e/b-cs-ui.cy.ts\"",
+    "test:d": "cypress run --spec \"cypress/e2e/d1-cross-unit.cy.ts,cypress/e2e/d2-idempotency.cy.ts,cypress/e2e/d3-campaigns.cy.ts,cypress/e2e/d4-burn-rules.cy.ts\"",
+    "test:e": "cypress run --spec \"cypress/e2e/e-non-functional.cy.ts\"",
+    "test:report": "cypress run --reporter junit --reporter-options \"mochaFile=results/junit-[hash].xml,toConsole=true\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.5",
+    "cypress": "15.21.0",
+    "typescript": "5.9.3"
+  }
+}

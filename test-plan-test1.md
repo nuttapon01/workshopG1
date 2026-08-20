@@ -216,9 +216,10 @@ npm run dev
 
 | # | Date | Section | Test Case | Description | Severity | Assigned To | Status |
 |---|------|---------|-----------|-------------|----------|-------------|--------|
-| 1 | | | | | | | |
-| 2 | | | | | | | |
-| 3 | | | | | | | |
+| DEF-001 | 2026-08-19 | A | A4.1 / A4.1b | `POST /api/admin/run-expiry` returns `{ success, expiredCount, totalPointsExpired, details }` but `design/api-spec.md` and `design/integration.md` specify `{ batchesExpired, totalPointsExpired, executedAt }`. Behaviour correct, field names off-contract. | Minor | Dev B | Open |
+| DEF-002 | 2026-08-19 | D | D3.4 | Partial refund recomputes against the wrong date. `refund.ts` does `original.date.toISOString().substring(0,10)`, which shifts the date one day earlier in UTC+7, so day-of-week campaigns drop out of the recompute. Sat 12 Sep basket claws back 9 instead of 4. `D3.4b` (Sun 6 Sep, shift stays inside the weekend) is correct, isolating the cause. Wrong balances after partial refunds; Finance replay will not reproduce. | Major | Dev C / owner of refund.ts | Open |
+| DEF-003 | 2026-08-19 | A | A4.2b | Points back-dated into an already-expired month never expire. `runExpiry()` skips any member×month that already has an EXPIRY row, so a later EARN into that month stays outstanding forever despite being older than 12 months. Contradicts US-005 (requirements only exempt months that are *fully* expired). | Minor | Dev B | Open |
+| DEF-004 | 2026-08-19 | A | A4.5 | EXPIRY ledger description names the wrong month. `expire-points.ts` formats `earned_month` with `toISOString()`, shifting it a day earlier under UTC+7: row stores 2024-03-01, audit text reads "earned month 2024-02-29". `details[].earnedMonth` in the API response is shifted too. Same root cause as DEF-002. | Minor | Dev B | Open |
 
 ---
 
@@ -233,6 +234,22 @@ npm run dev
 | BA | | | |
 
 ---
+
+## Automation
+
+Cypress suite: `qa-automation/` (branch `feature/unit4-qa-automation`). See
+`qa-automation/README.md` for the coverage table and prerequisites.
+
+```powershell
+cd qa-automation; npm install
+npm test              # full suite
+npm run cy:open       # interactive
+npm run test:report   # JUnit XML into results/
+```
+
+Automated: A4.1/A4.2/A4.4, A5.1/A5.2/A5.4, all of B (except B1.3), all of D, E1.1/E1.2/E2.2.
+Still manual: CLI cases (A1, A2, A4.3, C1–C3, E2.1), log inspection (A3), and infrastructure
+cases (A5.3, A5.5, B1.3).
 
 ## Notes
 - ทดสอบ Section A, B, C ได้ทันทีเมื่อ Dev แต่ละคนส่งงาน (ไม่ต้องรอทุกคน)
