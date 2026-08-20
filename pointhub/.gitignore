@@ -2,4 +2,12 @@ node_modules/
 dist/
 *.js.map
 .env
+.env.*
 coverage/
+
+# Secrets / certificates pulled in at build time (see Dockerfile: RDS CA bundle)
+*.pem
+*.crt
+
+# husky installs its shims here; the hook scripts themselves are tracked
+.husky/_/

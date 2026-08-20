@@ -17,7 +17,7 @@ interface EarnRequest {
 
 /**
  * POST /api/earn
- * 
+ *
  * Accepts a POS sale transaction and calculates + posts earn points.
  * Idempotent: if the same transactionId is submitted twice, returns the existing result.
  */
@@ -46,13 +46,17 @@ earnRouter.post('/', async (req: Request, res: Response) => {
     }
 
     // Calculate points
-    const txLines: TransactionLine[] = lines.map(l => ({
+    const txLines: TransactionLine[] = lines.map((l) => ({
       lineNo: l.lineNo,
       category: l.category,
       amountTHB: l.amountTHB,
     }));
 
-    const { lineResults, totalMilliPoints, pointsPosted } = await calculateBasketPoints(txLines, tier, date);
+    const { lineResults, totalMilliPoints, pointsPosted } = await calculateBasketPoints(
+      txLines,
+      tier,
+      date
+    );
 
     // Store in a DB transaction
     const client = await pool.connect();
@@ -64,7 +68,17 @@ earnRouter.post('/', async (req: Request, res: Response) => {
       await client.query(
         `INSERT INTO transactions (transaction_id, type, date, time, store_id, member_id, tier, total_amount_thb, total_milli_points, points_posted)
          VALUES ($1, 'SALE', $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [transactionId, date, time, storeId, memberId, tier, totalAmount, totalMilliPoints, pointsPosted]
+        [
+          transactionId,
+          date,
+          time,
+          storeId,
+          memberId,
+          tier,
+          totalAmount,
+          totalMilliPoints,
+          pointsPosted,
+        ]
       );
 
       // Insert line items
@@ -72,7 +86,15 @@ earnRouter.post('/', async (req: Request, res: Response) => {
         await client.query(
           `INSERT INTO transaction_lines (transaction_id, line_no, category, amount_thb, winning_campaign, multiplier_millipercent, milli_points)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [transactionId, lr.lineNo, lr.category, lr.amountTHB, lr.winningCampaign, lr.multiplierMillipercent, lr.milliPoints]
+          [
+            transactionId,
+            lr.lineNo,
+            lr.category,
+            lr.amountTHB,
+            lr.winningCampaign,
+            lr.multiplierMillipercent,
+            lr.milliPoints,
+          ]
         );
       }
 
@@ -82,7 +104,13 @@ earnRouter.post('/', async (req: Request, res: Response) => {
       await client.query(
         `INSERT INTO points_ledger (member_id, transaction_id, entry_type, points, description, earned_month)
          VALUES ($1, $2, 'EARN', $3, $4, $5)`,
-        [memberId, transactionId, pointsPosted, `Earned from transaction ${transactionId}`, earnedMonth]
+        [
+          memberId,
+          transactionId,
+          pointsPosted,
+          `Earned from transaction ${transactionId}`,
+          earnedMonth,
+        ]
       );
 
       await client.query('COMMIT');

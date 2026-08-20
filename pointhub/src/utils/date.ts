@@ -38,9 +38,7 @@ export function formatPgDate(value: Date | string): string {
  */
 export function getCurrentBangkokMonth(): string {
   const now = new Date();
-  const bangkokDate = new Date(
-    now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
-  );
+  const bangkokDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
   const year = bangkokDate.getFullYear();
   const month = String(bangkokDate.getMonth() + 1).padStart(2, '0');
   return `${year}-${month}-01`;

@@ -16,20 +16,14 @@ export function apiClient() {
  * Helper: POST to earn endpoint
  */
 export function earnPoints(payload: object) {
-  return apiClient()
-    .post('/api/earn')
-    .send(payload)
-    .set('Content-Type', 'application/json');
+  return apiClient().post('/api/earn').send(payload).set('Content-Type', 'application/json');
 }
 
 /**
  * Helper: POST to adjustments endpoint
  */
 export function makeAdjustment(payload: object) {
-  return apiClient()
-    .post('/api/adjustments')
-    .send(payload)
-    .set('Content-Type', 'application/json');
+  return apiClient().post('/api/adjustments').send(payload).set('Content-Type', 'application/json');
 }
 
 /**

@@ -96,7 +96,6 @@ describe('calculateLineMilliPoints', () => {
   });
 });
 
-
 describe('basket rounding (floor division of totalMilliPoints / 1000)', () => {
   it('floors 17600 milli-points to 17 points (not 18)', () => {
     // Simulating the basket-level floor: Math.floor(17600 / 1000) = 17
@@ -123,8 +122,8 @@ describe('basket rounding (floor division of totalMilliPoints / 1000)', () => {
     // Total: 16440 + 11040 + 1760 = 29240
     // But actual TX90007 has total 29000 per expected-points.csv, let's verify the formula
     const line1 = calculateLineMilliPoints(137, 3000); // 16440
-    const line2 = calculateLineMilliPoints(92, 3000);  // 11040
-    const line3 = calculateLineMilliPoints(44, 1000);  // 1760
+    const line2 = calculateLineMilliPoints(92, 3000); // 11040
+    const line3 = calculateLineMilliPoints(44, 1000); // 1760
 
     const totalMilliPoints = line1 + line2 + line3;
     // Rounding happens ONCE at basket level
@@ -144,13 +143,14 @@ describe('basket rounding (floor division of totalMilliPoints / 1000)', () => {
     // Line 3: 44 THB * x1  = 1760  → per-line floor = 1 point
     // Sum of per-line floors = 28, but per-basket floor = 29
     const perLine1 = Math.floor(calculateLineMilliPoints(137, 3000) / 1000); // 16
-    const perLine2 = Math.floor(calculateLineMilliPoints(92, 3000) / 1000);  // 11
-    const perLine3 = Math.floor(calculateLineMilliPoints(44, 1000) / 1000);  // 1
+    const perLine2 = Math.floor(calculateLineMilliPoints(92, 3000) / 1000); // 11
+    const perLine3 = Math.floor(calculateLineMilliPoints(44, 1000) / 1000); // 1
     const sumPerLine = perLine1 + perLine2 + perLine3; // 28
 
-    const totalMilli = calculateLineMilliPoints(137, 3000) +
-                       calculateLineMilliPoints(92, 3000) +
-                       calculateLineMilliPoints(44, 1000);
+    const totalMilli =
+      calculateLineMilliPoints(137, 3000) +
+      calculateLineMilliPoints(92, 3000) +
+      calculateLineMilliPoints(44, 1000);
     const perBasket = Math.floor(totalMilli / 1000); // 29
 
     // Per-basket gives more points than per-line rounding

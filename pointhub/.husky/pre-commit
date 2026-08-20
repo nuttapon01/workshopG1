@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+#
+# 1. eslint --fix + prettier --write on the staged files only
+# 2. gitleaks secret scan of the staged diff
+#
+# Hooks run from the git root (workshopG1/), which is one level above the
+# package.json that owns the tooling — hence the explicit cd.
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+
+# ---------------------------------------------------------------------------
+# Lint + format staged files
+# ---------------------------------------------------------------------------
+# lint-staged only picks up staged paths under its own cwd, so this covers
+# pointhub/. Other packages are covered by the CI `quality` job.
+(cd "$repo_root/pointhub" && npx --no-install lint-staged)
+
+# ---------------------------------------------------------------------------
+# Secret scan
+# ---------------------------------------------------------------------------
+# Pinned so every developer and CI evaluate the same rule set.
+GITLEAKS_VERSION="v8.30.1"
+GITLEAKS_ARGS="git --staged -c $repo_root/.gitleaks.toml --no-banner --redact --exit-code 1"
+
+if command -v gitleaks >/dev/null 2>&1; then
+  # shellcheck disable=SC2086
+  gitleaks $GITLEAKS_ARGS
+elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  docker run --rm -v "$repo_root:$repo_root" -w "$repo_root" \
+    "ghcr.io/gitleaks/gitleaks:$GITLEAKS_VERSION" \
+    git --staged -c "$repo_root/.gitleaks.toml" --no-banner --redact --exit-code 1
+else
+  # Fail open, loudly. This is only acceptable because two blocking gates sit
+  # downstream: the CI `secrets` job scans full history, and GitHub push
+  # protection rejects the push itself. Do not remove either one.
+  echo "" >&2
+  echo "  !! gitleaks not found and Docker is unavailable — staged secret scan SKIPPED." >&2
+  echo "  !! Install it with: brew install gitleaks" >&2
+  echo "" >&2
+fi

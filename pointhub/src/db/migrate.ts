@@ -1,6 +1,17 @@
-import pool from './pool';
+import { Queryable } from './types';
 
-const migration = `
+/**
+ * The schema, as one idempotent statement batch.
+ *
+ * Exported so there is exactly one copy of it. Three callers apply it:
+ *   - the `npm run migrate` CLI at the bottom of this file
+ *   - tests/global-setup.ts, against the throwaway `pointhub_test` database
+ *   - the CDK TriggerFunction, against RDS during deployment
+ *
+ * Every statement is `IF NOT EXISTS`, so re-running is safe. The deploy-time
+ * trigger relies on that.
+ */
+export const MIGRATION_SQL = `
 -- Members stub (read-only reference)
 CREATE TABLE IF NOT EXISTS members (
   member_id VARCHAR(20) PRIMARY KEY,
@@ -72,14 +83,33 @@ CREATE INDEX IF NOT EXISTS idx_transactions_member ON transactions(member_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_lines_txid ON transaction_lines(transaction_id);
 `;
 
-async function migrate() {
-  console.log('Running migrations...');
-  await pool.query(migration);
-  console.log('Migrations complete.');
-  await pool.end();
+/**
+ * Applies the schema. Accepts any pg connection so the caller decides whether
+ * that is a pool, a pooled client or a single client.
+ */
+export async function runMigration(db: Queryable): Promise<void> {
+  await db.query(MIGRATION_SQL);
 }
 
-migrate().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+// ---------------------------------------------------------------------------
+// CLI: npm run migrate
+// ---------------------------------------------------------------------------
+// Guarded so importing this module has no side effects. `./pool` is required
+// here rather than imported at the top because importing it constructs a
+// connection pool immediately — the migration Lambda imports runMigration and
+// supplies its own client, and should not open a second, unused pool (nor read
+// the DB_SSL/DB_CA_PATH variables that pool.ts validates).
+if (require.main === module) {
+  (async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pool = require('./pool').default as Queryable & { end(): Promise<void> };
+
+    console.log('Running migrations...');
+    await runMigration(pool);
+    console.log('Migrations complete.');
+    await pool.end();
+  })().catch((err) => {
+    console.error('Migration failed:', err);
+    process.exit(1);
+  });
+}

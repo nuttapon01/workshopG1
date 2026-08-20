@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+#
+# Typecheck + unit tests before the code leaves the machine.
+#
+# Deliberately excludes route/integration tests and Cypress: those need a live
+# PostgreSQL 15 (and a built container), which is CI's job. Keeping this hook
+# under ~30s is what stops people reaching for --no-verify.
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+
+cd "$repo_root/pointhub"
+
+echo "pre-push: typecheck"
+npm run typecheck
+
+# vitest's globalSetup (tests/global-setup.ts) creates and migrates the
+# `pointhub_test` database, so even the unit suite needs a reachable PostgreSQL.
+# Check first and say so plainly — otherwise this surfaces as an opaque pg
+# connection error and people reach for --no-verify.
+db_host="${DB_HOST:-localhost}"
+db_port="${DB_PORT:-5432}"
+
+if ! nc -z "$db_host" "$db_port" >/dev/null 2>&1; then
+  echo "" >&2
+  echo "  pre-push: cannot reach PostgreSQL at $db_host:$db_port" >&2
+  echo "  The unit suite provisions a test database, so it needs one running:" >&2
+  echo "" >&2
+  echo "      cd local-environment && docker compose up -d" >&2
+  echo "" >&2
+  exit 1
+fi
+
+echo "pre-push: unit tests"
+npm run test:unit

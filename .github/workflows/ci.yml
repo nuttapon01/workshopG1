@@ -1,0 +1,498 @@
+name: CI
+
+# Quality, security and end-to-end gates.
+#
+# Runs on every push and pull request, and is reusable via `workflow_call` so
+# deploy.yml gates on exactly the same jobs rather than a copy of them.
+#
+# This workflow deliberately has NO `id-token: write` permission. The repository
+# is public, so anyone can open a pull request; keeping the OIDC capability out
+# of this file means a PR can never reach the AWS deployment role. Cloud
+# credentials live only in deploy.yml, which is restricted to the `production`
+# branch.
+
+on:
+  push:
+    branches-ignore:
+      - production # production pushes go through deploy.yml, which calls this workflow
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Static checks: no database, no container, fails fastest.
+  # ---------------------------------------------------------------------------
+  quality:
+    name: Lint / format / typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            pointhub/package-lock.json
+            pointhub/client/package-lock.json
+            qa-automation/package-lock.json
+
+      - name: Install dependencies
+        working-directory: pointhub
+        # HUSKY=0 disables the `prepare` script. Git hooks are a developer-machine
+        # concern; installing them on a CI runner just adds a failure mode.
+        env:
+          HUSKY: '0'
+        run: npm ci
+
+      - name: ESLint
+        working-directory: pointhub
+        # Runs with --max-warnings=23, the ratchet documented in
+        # pointhub/eslint.config.js. Errors are always zero.
+        run: npm run lint
+
+      - name: Prettier
+        working-directory: pointhub
+        run: npm run format:check
+
+      - name: TypeScript
+        working-directory: pointhub
+        run: npm run typecheck
+
+      - name: TypeScript (Cypress specs)
+        working-directory: qa-automation
+        run: |
+          npm ci
+          npm run typecheck
+
+  # ---------------------------------------------------------------------------
+  # Unit + route + integration suites against a real PostgreSQL 15.
+  #
+  # A real database is required rather than mocks: tests/global-setup.ts creates
+  # and migrates a `pointhub_test` database, and the integration suite replays
+  # all 43 sample transactions and asserts the eight closing balances from
+  # technical-environment.md (the finance-reproducibility check).
+  # ---------------------------------------------------------------------------
+  test:
+    name: Tests (PostgreSQL 15)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: pointhub
+          POSTGRES_PASSWORD: pointhub
+          POSTGRES_DB: pointhub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pointhub"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USER: pointhub
+      DB_PASSWORD: pointhub
+      DB_NAME: pointhub
+      TZ: Asia/Bangkok
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: pointhub/package-lock.json
+
+      - name: Install dependencies
+        working-directory: pointhub
+        env:
+          HUSKY: '0'
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: pointhub
+        run: npm run test:unit
+
+      - name: Full suite with coverage
+        working-directory: pointhub
+        # vitest.config.mts sets fileParallelism: false — the route and
+        # integration suites share one database and must not interleave.
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ github.sha }}
+          path: pointhub/coverage/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Secret scanning over the FULL history.
+  #
+  # The pre-commit hook scans only the staged diff and fails open when gitleaks
+  # is not installed locally, so this job is the authoritative gate. It is also
+  # the only one that catches a secret introduced in an earlier commit and then
+  # deleted — the value stays reachable in the object database, so deleting the
+  # file does not remediate it.
+  # ---------------------------------------------------------------------------
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write # to surface findings in the Security tab
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history — a shallow clone would silently scan one commit
+
+      - name: gitleaks
+        # Run the pinned image directly rather than gitleaks-action, whose
+        # licence requires a key for organisation-owned repositories. The binary
+        # itself is MIT and unrestricted.
+        #
+        # `git` is the subcommand (history scan); `protect` was removed in 8.x.
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo" \
+            -w /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            git \
+              --config /repo/.gitleaks.toml \
+              --redact \
+              --no-banner \
+              --exit-code 1 \
+              --report-format sarif \
+              --report-path /repo/gitleaks-report.sarif
+
+      # Both upload steps run even when the scan failed — that is exactly when
+      # the report is worth having.
+      - name: Upload gitleaks report to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: gitleaks-report.sarif
+          category: gitleaks
+        continue-on-error: true # a missing report must not mask the scan result
+
+      - name: Upload gitleaks report as artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gitleaks-report-${{ github.sha }}
+          path: gitleaks-report.sarif
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Dependency vulnerabilities across all four npm projects.
+  # ---------------------------------------------------------------------------
+  deps:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false # report every project, not just the first to fail
+      matrix:
+        project:
+          - pointhub
+          - pointhub/client
+          - qa-automation
+          - infra # AWS CDK app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: npm audit
+        working-directory: ${{ matrix.project }}
+        # `--audit-level=high` fails the job on high and critical advisories.
+        # All four projects are at zero as of the CI/CD work; express was moved
+        # from 4.18.2 to 4.22.2 and tsx from 4.7.0 to 4.23.12 to get there.
+        run: npm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Static analysis. Free for public repositories; results land in the
+  # repository Security tab.
+  # ---------------------------------------------------------------------------
+  sast:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # required to upload the SARIF results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          category: /language:javascript-typescript
+
+  # ---------------------------------------------------------------------------
+  # Build the runtime image and scan it.
+  #
+  # The image is exported as a tarball artifact rather than pushed anywhere. The
+  # e2e job loads that exact tarball, so the end-to-end suite exercises the
+  # artifact that would ship — including the webpack-built CS UI baked into it —
+  # rather than a separately started dev server.
+  #
+  # Pushing to ECR happens only in deploy.yml, after every gate here has passed.
+  # ---------------------------------------------------------------------------
+  image:
+    name: Build image / Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Build image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: pointhub
+          file: pointhub/Dockerfile
+          tags: pointhub:${{ github.sha }}
+          # Export to a tarball so the artifact is byte-identical to what the
+          # e2e job loads and what deploy.yml would push.
+          outputs: type=docker,dest=/tmp/pointhub-image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false # keeps the tarball a plain single-image archive
+
+      - name: Trivy — fail on HIGH/CRITICAL
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: /tmp/pointhub-image.tar
+          scan-type: image
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          # Advisories with no released fix cannot be actioned by this pipeline;
+          # they would turn the gate into noise that people learn to ignore.
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy — SARIF report
+        # Runs even when the gate above failed: that is when the detail matters.
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: /tmp/pointhub-image.tar
+          scan-type: image
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '0'
+          format: sarif
+          output: trivy-results.sarif
+          # Without this the SARIF output ignores `severity:` and reports every
+          # level, so the Security tab would fill with findings the gate does not
+          # enforce. Keeping them aligned means one list, one meaning.
+          limit-severities-for-sarif: true
+          skip-setup-trivy: true # reuse the binary and DB from the previous step
+
+      - name: Upload Trivy SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-image
+        continue-on-error: true
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pointhub-image-${{ github.sha }}
+          path: /tmp/pointhub-image.tar
+          retention-days: 1 # only needed until the e2e job in this same run consumes it
+          compression-level: 6
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Cypress end-to-end suite against the built image.
+  #
+  # Runs the 57 specs in qa-automation/ against the container produced by the
+  # `image` job — not against `npm run dev`. That distinction matters: it is the
+  # only gate that exercises the webpack-built CS UI bundle as it is actually
+  # baked into the artifact, plus the compiled dist/ output, plus the real
+  # static-file paths. A dev-server run would pass with a broken image.
+  #
+  # This suite MUTATES data (top-ups and resets on M1003/M1007, earn/refund
+  # posts, run-expiry calls) and the ledger is append-only, so it must never be
+  # pointed at production. The post-deploy check in deploy.yml is a separate,
+  # strictly read-only spec.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: E2E (Cypress vs image)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: image
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: pointhub
+          POSTGRES_PASSWORD: pointhub
+          POSTGRES_DB: pointhub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pointhub"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_PORT: '3000'
+      DB_HOST: localhost
+      DB_PORT: '5432'
+      DB_USER: pointhub
+      DB_PASSWORD: pointhub
+      DB_NAME: pointhub
+      TZ: Asia/Bangkok
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: qa-automation/package-lock.json
+
+      - name: Download image built by the `image` job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pointhub-image-${{ github.sha }}
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/pointhub-image.tar
+          docker image inspect "pointhub:${{ github.sha }}" >/dev/null
+
+      # Schema comes from the compiled migration inside the image, not from tsx
+      # on the runner — the same dist/db/migrate.js that the CDK TriggerFunction
+      # will run against RDS.
+      - name: Apply schema
+        run: |
+          docker run --rm --network host \
+            -e DB_HOST -e DB_PORT -e DB_USER -e DB_PASSWORD -e DB_NAME \
+            --entrypoint node "pointhub:${{ github.sha }}" dist/db/migrate.js
+
+      # sample-data/ lives above pointhub/ and so is outside the image build
+      # context. Mount it read-only and point the seeder at it explicitly via
+      # SAMPLE_DATA_DIR rather than relying on the compiled __dirname fallback.
+      - name: Seed reference data
+        run: |
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE/sample-data:/seed-data:ro" \
+            -e SAMPLE_DATA_DIR=/seed-data \
+            -e DB_HOST -e DB_PORT -e DB_USER -e DB_PASSWORD -e DB_NAME \
+            --entrypoint node "pointhub:${{ github.sha }}" dist/db/seed.js
+
+      - name: Start application container
+        run: |
+          # Fail fast if something already holds the port. Otherwise the
+          # container exits, the readiness probe answers from whatever else is
+          # listening, and the whole suite passes green against the wrong
+          # target — which is exactly what happened when this was first
+          # verified against a developer machine with `npm run dev` running.
+          if curl -fsS -o /dev/null --max-time 2 "http://localhost:${APP_PORT}/api/health" 2>/dev/null; then
+            echo "::error::something is already serving on port ${APP_PORT}; refusing to start"
+            exit 1
+          fi
+
+          docker run -d --name pointhub --network host \
+            -e DB_HOST -e DB_PORT -e DB_USER -e DB_PASSWORD -e DB_NAME \
+            -e PORT="$APP_PORT" -e TZ \
+            "pointhub:${{ github.sha }}"
+
+      - name: Assert the container is the thing running
+        run: |
+          sleep 2
+          if [ "$(docker inspect -f '{{.State.Running}}' pointhub)" != "true" ]; then
+            echo "::error::container is not running"
+            docker logs pointhub || true
+            exit 1
+          fi
+
+      - name: Wait for readiness
+        # /api/ready is the probe that actually opens a database connection, so
+        # it is the only one worth gating on.
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -fsS -o /dev/null -w '%{http_code}' \
+              "http://localhost:${APP_PORT}/api/ready" 2>/dev/null || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::application did not become ready within 60s"
+          docker logs pointhub
+          exit 1
+
+      - name: Install Cypress
+        working-directory: qa-automation
+        run: npm ci
+
+      - name: Run Cypress suite
+        working-directory: qa-automation
+        env:
+          POINTHUB_BASE_URL: http://localhost:3000
+        # cypress.config.ts already sets retries.runMode = 1, which absorbs antd
+        # animation timing without hiding real defects.
+        run: npm run test:report
+
+      - name: Application logs
+        if: always()
+        run: docker logs pointhub || true
+
+      - name: Upload Cypress artefacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cypress-results-${{ github.sha }}
+          path: |
+            qa-automation/results/
+            qa-automation/cypress/screenshots/
+          retention-days: 7
+          if-no-files-found: warn

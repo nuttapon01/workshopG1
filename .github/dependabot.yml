@@ -1,0 +1,86 @@
+version: 2
+
+# Dependency updates for all four npm projects plus the workflow actions
+# themselves. Action updates matter here because every `uses:` in this
+# repository is pinned to a commit SHA — without Dependabot those pins go stale
+# and silently stop receiving security fixes.
+
+updates:
+  - package-ecosystem: npm
+    directory: /pointhub
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, pointhub]
+    commit-message:
+      prefix: 'fix(deps)'
+      prefix-development: 'chore(deps)'
+    groups:
+      # One PR for the lint/format/test toolchain instead of ten.
+      dev-tooling:
+        dependency-type: development
+        patterns:
+          - '@typescript-eslint/*'
+          - 'eslint*'
+          - 'prettier*'
+          - 'vitest'
+          - '@vitest/*'
+          - 'husky'
+          - 'lint-staged'
+          - '@commitlint/*'
+
+  - package-ecosystem: npm
+    directory: /pointhub/client
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, cs-ui]
+    commit-message:
+      prefix: 'fix(deps)'
+      prefix-development: 'chore(deps)'
+    groups:
+      webpack-toolchain:
+        dependency-type: development
+        patterns:
+          - 'webpack*'
+          - '*-loader'
+          - '*-webpack-plugin'
+
+  - package-ecosystem: npm
+    directory: /qa-automation
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: [dependencies, qa]
+    commit-message:
+      prefix: 'chore(deps)'
+
+  - package-ecosystem: npm
+    directory: /infra
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, infra]
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      aws-cdk:
+        patterns:
+          - 'aws-cdk'
+          - 'aws-cdk-lib'
+          - 'constructs'
+          - 'cdk-nag'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: 'ci(ci)'

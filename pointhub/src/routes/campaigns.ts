@@ -17,7 +17,7 @@ campaignsRouter.get('/', async (req: Request, res: Response) => {
     query += ' ORDER BY priority DESC, campaign_id';
 
     const result = await pool.query(query);
-    const campaigns = result.rows.map(c => ({
+    const campaigns = result.rows.map((c) => ({
       campaignId: c.campaign_id,
       name: c.name,
       multiplier: c.multiplier_millipercent / 1000,
@@ -78,7 +78,17 @@ campaignsRouter.get('/:id', async (req: Request, res: Response) => {
  */
 campaignsRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const { campaignId, name, multiplier, category, tier, dayOfWeek, startDate, endDate, priority } = req.body;
+    const {
+      campaignId,
+      name,
+      multiplier,
+      category,
+      tier,
+      dayOfWeek,
+      startDate,
+      endDate,
+      priority,
+    } = req.body;
 
     if (!campaignId || !name || !multiplier) {
       return res.status(400).json({ error: 'Required: campaignId, name, multiplier' });
@@ -90,8 +100,17 @@ campaignsRouter.post('/', async (req: Request, res: Response) => {
     await pool.query(
       `INSERT INTO campaigns (campaign_id, name, multiplier_millipercent, category, tier, day_of_week, start_date, end_date, priority, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)`,
-      [campaignId, name, multiplierMillipercent, category || null, tier || null,
-       dayOfWeek || null, startDate || null, endDate || null, priority || 0]
+      [
+        campaignId,
+        name,
+        multiplierMillipercent,
+        category || null,
+        tier || null,
+        dayOfWeek || null,
+        startDate || null,
+        endDate || null,
+        priority || 0,
+      ]
     );
 
     return res.status(201).json({
@@ -102,7 +121,8 @@ campaignsRouter.post('/', async (req: Request, res: Response) => {
       isActive: true,
     });
   } catch (err: any) {
-    if (err.code === '23505') { // unique violation
+    if (err.code === '23505') {
+      // unique violation
       return res.status(409).json({ error: 'Campaign ID already exists' });
     }
     return res.status(500).json({ error: 'Internal server error', detail: err.message });

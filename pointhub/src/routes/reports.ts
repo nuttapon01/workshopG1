@@ -6,7 +6,7 @@ export const reportsRouter = Router();
 
 /**
  * GET /api/reports/liability
- * 
+ *
  * Point liability summary for Finance:
  * - Total outstanding points (sum of all ledger entries)
  * - Breakdown by tier
@@ -23,7 +23,10 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
        ORDER BY m.tier`
     );
 
-    const totalPoints = byTier.rows.reduce((sum: number, r: any) => sum + parseInt(r.total_points, 10), 0);
+    const totalPoints = byTier.rows.reduce(
+      (sum: number, r: any) => sum + parseInt(r.total_points, 10),
+      0
+    );
 
     // Points expiring in the next 3 months
     // Points expire 12 months after the month earned
@@ -59,8 +62,9 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
       // Expiry: 12 months after the earned month (end of that month)
       const expiryMonth = new Date(earnedDate.getFullYear(), earnedDate.getMonth() + 12, 1);
 
-      const monthsUntilExpiry = (expiryMonth.getFullYear() - currentMonth.getFullYear()) * 12
-        + (expiryMonth.getMonth() - currentMonth.getMonth());
+      const monthsUntilExpiry =
+        (expiryMonth.getFullYear() - currentMonth.getFullYear()) * 12 +
+        (expiryMonth.getMonth() - currentMonth.getMonth());
 
       if (monthsUntilExpiry <= 1 && monthsUntilExpiry > 0) {
         expiringIn1Month.points += parseInt(row.points, 10);
@@ -75,7 +79,7 @@ reportsRouter.get('/liability', async (_req: Request, res: Response) => {
 
     return res.json({
       totalOutstandingPoints: totalPoints,
-      byTier: byTier.rows.map(r => ({
+      byTier: byTier.rows.map((r) => ({
         tier: r.tier,
         totalPoints: parseInt(r.total_points, 10),
         memberCount: parseInt(r.member_count, 10),

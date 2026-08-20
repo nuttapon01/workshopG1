@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
-import {
-  getTestPool,
-  seedMembers,
-  clearAll,
-  insertLedgerEntry,
-  runExpiry,
-} from '../helpers';
+import { getTestPool, seedMembers, clearAll, insertLedgerEntry, runExpiry } from '../helpers';
 
 describe('POST /api/admin/run-expiry', () => {
   let pool: Pool;
@@ -45,11 +39,15 @@ describe('POST /api/admin/run-expiry', () => {
         earnedMonth: '2026-09-01',
       });
 
-      const res = await runExpiry()
-        .send({ currentMonth: '2026-09-01' });
+      const res = await runExpiry().send({ currentMonth: '2026-09-01' });
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
+      // Response shape is fixed by design/api-spec.md:
+      // { batchesExpired, totalPointsExpired, executedAt, details }.
+      // There is no `success` field — asserting one was a leftover from the
+      // pre-DEF-001 shape and passed only while the route was off-spec.
+      expect(res.body.executedAt).toBeDefined();
+      expect(res.body.batchesExpired).toBeGreaterThanOrEqual(1);
       expect(res.body.totalPointsExpired).toBeGreaterThanOrEqual(200);
     });
   });
@@ -64,14 +62,12 @@ describe('POST /api/admin/run-expiry', () => {
       });
 
       // First run
-      const first = await runExpiry()
-        .send({ currentMonth: '2026-09-01' });
+      const first = await runExpiry().send({ currentMonth: '2026-09-01' });
       expect(first.status).toBe(200);
       const firstExpired = first.body.totalPointsExpired;
 
       // Second run (same month) — should expire nothing new
-      const second = await runExpiry()
-        .send({ currentMonth: '2026-09-01' });
+      const second = await runExpiry().send({ currentMonth: '2026-09-01' });
       expect(second.status).toBe(200);
       expect(second.body.totalPointsExpired).toBe(0);
 
@@ -93,11 +89,11 @@ describe('POST /api/admin/run-expiry', () => {
         earnedMonth: '2026-08-01', // only 1 month old
       });
 
-      const res = await runExpiry()
-        .send({ currentMonth: '2026-09-01' });
+      const res = await runExpiry().send({ currentMonth: '2026-09-01' });
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
+      expect(res.body.executedAt).toBeDefined();
+      expect(res.body.batchesExpired).toBe(0);
       expect(res.body.totalPointsExpired).toBe(0);
     });
   });
@@ -117,8 +113,7 @@ describe('POST /api/admin/run-expiry', () => {
         earnedMonth: '2025-07-01',
       });
 
-      const res = await runExpiry()
-        .send({ currentMonth: '2026-09-01' });
+      const res = await runExpiry().send({ currentMonth: '2026-09-01' });
 
       expect(res.status).toBe(200);
       expect(res.body.totalPointsExpired).toBe(300);

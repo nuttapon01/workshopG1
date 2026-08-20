@@ -51,7 +51,10 @@ const MILLI_POINTS_PER_THB_BASE = 40; // 1000 milli-points / 25 THB
  * Formula: amountTHB * multiplierMillipercent / 25
  * This is exact integer division (using Math.floor but inputs are designed to be exact).
  */
-export function calculateLineMilliPoints(amountTHB: number, multiplierMillipercent: number): number {
+export function calculateLineMilliPoints(
+  amountTHB: number,
+  multiplierMillipercent: number
+): number {
   // amountTHB * multiplierMillipercent / 25
   // Since we do integer arithmetic: result is always an integer because
   // multiplierMillipercent is always a multiple of 100 (500, 1000, 2000, 2500, 3000, 5000)
@@ -152,17 +155,20 @@ function resolveWinningCampaign(
     return { campaignId: bestCampaign?.campaign_id ?? null, multiplierMillipercent: 1000 };
   }
 
-  return { campaignId: bestCampaign.campaign_id, multiplierMillipercent: bestCampaign.multiplier_millipercent };
+  return {
+    campaignId: bestCampaign.campaign_id,
+    multiplierMillipercent: bestCampaign.multiplier_millipercent,
+  };
 }
 
 /**
  * Calculates points for an entire basket of line items.
- * 
+ *
  * Business rules:
  * - Per-line: determine winning campaign, calculate milli-points
  * - Per-basket: sum milli-points, then floor-divide by 1000 to get posted points
  * - Rounding happens ONCE at the basket level (stakeholder: "rounds down per basket")
- * 
+ *
  * Returns line-level detail and basket total.
  */
 export async function calculateBasketPoints(
@@ -183,7 +189,11 @@ export async function calculateBasketPoints(
 
   for (const line of lines) {
     const { campaignId, multiplierMillipercent } = resolveWinningCampaign(
-      campaigns, line.category, tier, dateStr, dayOfWeek
+      campaigns,
+      line.category,
+      tier,
+      dateStr,
+      dayOfWeek
     );
 
     const milliPoints = calculateLineMilliPoints(line.amountTHB, multiplierMillipercent);

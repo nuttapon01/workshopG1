@@ -24,6 +24,28 @@ dist/
 secure-store/
 *.key
 *.pem
+*.crt
+.aws/
+aws-credentials*
+
+# Exception: the Amazon RDS trust store is a bundle of public CA certificates,
+# not a secret. It is committed because the migration Lambda has no internet
+# route to fetch it at runtime (isolated subnet, no NAT), so esbuild inlines it
+# at build time and CI needs the file present in the checkout.
+!infra/assets/rds-global-bundle.pem
+
+# AWS CDK (infra/)
+cdk.out/
+*.cdk.staging/
+cdk.context.json
+
+# Test artefacts
+qa-automation/results/
+qa-automation/cypress/screenshots/
+qa-automation/cypress/videos/
+coverage/
+trivy-results.sarif
+gitleaks-report.sarif
 
 # OS / editor
 .DS_Store

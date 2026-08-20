@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+#
+# Conventional Commits check. Rules live in pointhub/commitlint.config.js.
+
+repo_root=$(git rev-parse --show-toplevel)
+
+cd "$repo_root/pointhub" || exit 1
+
+# $1 is the path to COMMIT_EDITMSG, relative to the git root.
+case "$1" in
+  /*) msg_file="$1" ;;
+   *) msg_file="$repo_root/$1" ;;
+esac
+
+npx --no-install commitlint --edit "$msg_file"

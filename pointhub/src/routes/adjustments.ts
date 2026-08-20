@@ -15,7 +15,7 @@ interface AdjustmentRequest {
 
 /**
  * POST /api/adjustments
- * 
+ *
  * Manual point adjustment by customer service.
  * Full audit trail via the points_ledger.
  */
@@ -38,10 +38,9 @@ adjustmentsRouter.post('/', async (req: Request, res: Response) => {
     }
 
     // Verify member exists
-    const memberResult = await pool.query(
-      'SELECT member_id FROM members WHERE member_id = $1',
-      [memberId]
-    );
+    const memberResult = await pool.query('SELECT member_id FROM members WHERE member_id = $1', [
+      memberId,
+    ]);
     if (memberResult.rows.length === 0) {
       return res.status(404).json({ error: 'Member not found' });
     }
@@ -96,7 +95,7 @@ adjustmentsRouter.get('/', async (req: Request, res: Response) => {
 
     return res.json({
       memberId,
-      adjustments: result.rows.map(r => ({
+      adjustments: result.rows.map((r) => ({
         id: r.id,
         points: r.points,
         reasonCode: r.reason_code,

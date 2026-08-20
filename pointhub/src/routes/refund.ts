@@ -17,18 +17,19 @@ interface RefundRequest {
 
 /**
  * POST /api/refund
- * 
+ *
  * Processes a refund transaction:
  * - Full refund: reverses exactly the points earned by the original transaction.
  * - Partial refund: recomputes the basket without the returned lines, then claws back
  *   the difference (originalPoints - recomputedPoints).
- * 
+ *
  * Idempotent: duplicate refund transactionId returns existing result.
  */
 refundRouter.post('/', async (req: Request, res: Response) => {
   try {
     const body: RefundRequest = req.body;
-    const { transactionId, originalTransactionId, date, time, storeId, memberId, tier, lines } = body;
+    const { transactionId, originalTransactionId, date, time, storeId, memberId, tier, lines } =
+      body;
 
     if (!transactionId || !originalTransactionId || !date || !memberId || !lines?.length) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -53,7 +54,9 @@ refundRouter.post('/', async (req: Request, res: Response) => {
       [originalTransactionId]
     );
     if (origTx.rows.length === 0) {
-      return res.status(404).json({ error: `Original transaction ${originalTransactionId} not found` });
+      return res
+        .status(404)
+        .json({ error: `Original transaction ${originalTransactionId} not found` });
     }
     const original = origTx.rows[0];
     const originalPointsPosted: number = original.points_posted;
@@ -66,10 +69,11 @@ refundRouter.post('/', async (req: Request, res: Response) => {
 
     // Determine which original lines are being refunded
     // Refund lines have negative amounts; match by lineNo
-    const refundedLineNos = new Set(lines.map(l => l.lineNo));
+    const refundedLineNos = new Set(lines.map((l) => l.lineNo));
 
     // Check if it's a full or partial refund
-    const isFullRefund = origLines.rows.length === lines.length &&
+    const isFullRefund =
+      origLines.rows.length === lines.length &&
       origLines.rows.every((ol: any) => refundedLineNos.has(ol.line_no));
 
     let pointsToClawBack: number;
@@ -89,7 +93,9 @@ refundRouter.post('/', async (req: Request, res: Response) => {
 
       // Recompute with original date and tier — use date_str (text from SQL) to avoid timezone shift
       const { pointsPosted: recomputedPoints } = await calculateBasketPoints(
-        remainingLines, original.tier, original.date_str
+        remainingLines,
+        original.tier,
+        original.date_str
       );
 
       // Claw back = original - recomputed
@@ -105,7 +111,17 @@ refundRouter.post('/', async (req: Request, res: Response) => {
       await client.query(
         `INSERT INTO transactions (transaction_id, type, original_transaction_id, date, time, store_id, member_id, tier, total_amount_thb, total_milli_points, points_posted)
          VALUES ($1, 'REFUND', $2, $3, $4, $5, $6, $7, $8, 0, $9)`,
-        [transactionId, originalTransactionId, date, time || '00:00', storeId || original.store_id, memberId, tier, totalAmount, -pointsToClawBack]
+        [
+          transactionId,
+          originalTransactionId,
+          date,
+          time || '00:00',
+          storeId || original.store_id,
+          memberId,
+          tier,
+          totalAmount,
+          -pointsToClawBack,
+        ]
       );
 
       // Insert refund line items
@@ -121,7 +137,12 @@ refundRouter.post('/', async (req: Request, res: Response) => {
       await client.query(
         `INSERT INTO points_ledger (member_id, transaction_id, entry_type, points, description)
          VALUES ($1, $2, 'REFUND_CLAWBACK', $3, $4)`,
-        [memberId, transactionId, -pointsToClawBack, `Refund of ${originalTransactionId}: clawed back ${pointsToClawBack} points`]
+        [
+          memberId,
+          transactionId,
+          -pointsToClawBack,
+          `Refund of ${originalTransactionId}: clawed back ${pointsToClawBack} points`,
+        ]
       );
 
       await client.query('COMMIT');

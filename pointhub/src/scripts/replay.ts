@@ -4,7 +4,7 @@ import * as path from 'path';
 /**
  * Replays all transactions from sample-data/transactions.csv through the PointHub API.
  * Groups line items by transactionId, then sends each transaction to /api/earn or /api/refund.
- * 
+ *
  * Usage: tsx src/scripts/replay.ts [baseUrl]
  * Default baseUrl: http://localhost:3000
  */
@@ -25,12 +25,40 @@ interface RawLine {
   amountTHB: number;
 }
 
+/**
+ * Shapes of the API responses this script consumes.
+ *
+ * Node 20's built-in `fetch` types `response.json()` as `Promise<unknown>`, so
+ * each call site needs an explicit assertion. Fields are optional because the
+ * error branch returns `{ error }` instead of the success payload.
+ */
+interface EarnResponse {
+  pointsPosted?: number;
+  duplicate?: boolean;
+  error?: string;
+}
+
+interface RefundResponse {
+  pointsClawedBack?: number;
+  duplicate?: boolean;
+  error?: string;
+}
+
+interface BalanceResponse {
+  balance?: number;
+}
+
+/** Narrows an unknown thrown value to a printable message. */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 function parseCSV(filePath: string): RawLine[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
-  const header = lines[0].split(',');
 
-  return lines.slice(1).map(line => {
+  // Columns are read positionally below; the header row is skipped, not parsed.
+  return lines.slice(1).map((line) => {
     const values = line.split(',');
     return {
       transactionId: values[0],
@@ -96,8 +124,8 @@ async function replay() {
   const transactions = groupByTransaction(rawLines);
 
   // Separate sales and refunds — process sales first, then refunds
-  const sales = transactions.filter(t => t.type === 'SALE');
-  const refunds = transactions.filter(t => t.type === 'REFUND');
+  const sales = transactions.filter((t) => t.type === 'SALE');
+  const refunds = transactions.filter((t) => t.type === 'REFUND');
 
   console.log(`\nFound ${sales.length} sales, ${refunds.length} refunds\n`);
 
@@ -112,7 +140,7 @@ async function replay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tx),
       });
-      const data = await response.json();
+      const data = (await response.json()) as EarnResponse;
 
       if (response.ok) {
         const dup = data.duplicate ? ' (duplicate)' : '';
@@ -122,8 +150,8 @@ async function replay() {
         console.error(`  ✗ ${tx.transactionId}: ${data.error}`);
         errorCount++;
       }
-    } catch (err: any) {
-      console.error(`  ✗ ${tx.transactionId}: ${err.message}`);
+    } catch (err) {
+      console.error(`  ✗ ${tx.transactionId}: ${errorMessage(err)}`);
       errorCount++;
     }
   }
@@ -136,18 +164,20 @@ async function replay() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tx),
       });
-      const data = await response.json();
+      const data = (await response.json()) as RefundResponse;
 
       if (response.ok) {
         const dup = data.duplicate ? ' (duplicate)' : '';
-        console.log(`  ✓ ${tx.transactionId} (refund of ${tx.originalTransactionId}): -${data.pointsClawedBack} pts${dup}`);
+        console.log(
+          `  ✓ ${tx.transactionId} (refund of ${tx.originalTransactionId}): -${data.pointsClawedBack} pts${dup}`
+        );
         successCount++;
       } else {
         console.error(`  ✗ ${tx.transactionId}: ${data.error}`);
         errorCount++;
       }
-    } catch (err: any) {
-      console.error(`  ✗ ${tx.transactionId}: ${err.message}`);
+    } catch (err) {
+      console.error(`  ✗ ${tx.transactionId}: ${errorMessage(err)}`);
       errorCount++;
     }
   }
@@ -158,21 +188,27 @@ async function replay() {
   // Check final balances
   console.log(`\n--- Final Balances ---`);
   const expectedBalances: Record<string, number> = {
-    M1001: 383, M1002: 254, M1003: 374, M1004: 156,
-    M1005: 567, M1006: 452, M1007: 624, M1008: 78,
+    M1001: 383,
+    M1002: 254,
+    M1003: 374,
+    M1004: 156,
+    M1005: 567,
+    M1006: 452,
+    M1007: 624,
+    M1008: 78,
   };
 
   let allMatch = true;
   for (const [memberId, expected] of Object.entries(expectedBalances)) {
     try {
       const response = await fetch(`${BASE_URL}/api/members/${memberId}/balance`);
-      const data = await response.json();
+      const data = (await response.json()) as BalanceResponse;
       const actual = data.balance;
       const match = actual === expected ? '✓' : '✗';
       if (actual !== expected) allMatch = false;
       console.log(`  ${match} ${memberId}: expected=${expected}, actual=${actual}`);
-    } catch (err: any) {
-      console.log(`  ✗ ${memberId}: ${err.message}`);
+    } catch (err) {
+      console.log(`  ✗ ${memberId}: ${errorMessage(err)}`);
       allMatch = false;
     }
   }
@@ -185,7 +221,7 @@ async function replay() {
   }
 }
 
-replay().catch(err => {
+replay().catch((err) => {
   console.error('Replay failed:', err);
   process.exit(1);
 });
