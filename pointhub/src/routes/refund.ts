@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { calculateBasketPoints, TransactionLine } from '../engine/calculate-points';
+import { formatPgDate } from '../utils/date';
 
 export const refundRouter = Router();
 
@@ -89,9 +90,7 @@ refundRouter.post('/', async (req: Request, res: Response) => {
 
       // Recompute with original date and tier
       const { pointsPosted: recomputedPoints } = await calculateBasketPoints(
-        remainingLines, original.tier, original.date instanceof Date
-          ? original.date.toISOString().substring(0, 10)
-          : String(original.date).substring(0, 10)
+        remainingLines, original.tier, formatPgDate(original.date)
       );
 
       // Claw back = original - recomputed

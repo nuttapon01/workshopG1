@@ -15,7 +15,7 @@ export const adminRouter = Router();
  *   { "currentMonth": "2026-08-01" }  — override for testing
  *
  * Returns:
- *   { expiredCount, totalPointsExpired, details }
+ *   { batchesExpired, totalPointsExpired, executedAt, details }
  */
 adminRouter.post('/run-expiry', async (req: Request, res: Response) => {
   try {
@@ -31,8 +31,10 @@ adminRouter.post('/run-expiry', async (req: Request, res: Response) => {
     const result = await runExpiry(pool, overrideMonth);
 
     res.json({
-      success: true,
-      ...result,
+      batchesExpired: result.expiredCount,
+      totalPointsExpired: result.totalPointsExpired,
+      executedAt: new Date().toISOString(),
+      details: result.details,
     });
   } catch (err) {
     logger.error({ err }, 'POST /api/admin/run-expiry failed');

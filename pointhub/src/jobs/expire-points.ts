@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { logger } from '../middleware/logger';
+import { formatPgDate, getCurrentBangkokMonth } from '../utils/date';
 
 /**
  * Point Expiry Job
@@ -9,15 +10,15 @@ import { logger } from '../middleware/logger';
  *
  * Logic:
  * 1. Determine current month in Bangkok timezone (first day of month).
- * 2. Find all (member_id, earned_month) combinations from EARN entries
- *    where earned_month + 12 months < current Bangkok month.
- * 3. For each eligible combination, sum the net points (EARN minus any
- *    already-posted EXPIRY for that member×month).
- * 4. If net remaining > 0 and no EXPIRY entry already exists for that
- *    member×month, insert a negative EXPIRY entry.
+ * 2. Find all (member_id, earned_month) combinations where
+ *    earned_month + 12 months < current Bangkok month.
+ * 3. Sum EARN + EXPIRY entries per member×month. If net > 0, there are
+ *    unexpired points remaining (handles back-dated earns into settled months).
+ * 4. Insert a negative EXPIRY entry for the remaining net points.
  *
- * Idempotency: Uses NOT EXISTS to skip member×month pairs that already
- * have an EXPIRY entry. Safe to run multiple times.
+ * Idempotency: Uses net sum (EARN + EXPIRY) with HAVING > 0. If all points
+ * for a member×month are already expired, the sum is 0 and the row is skipped.
+ * Safe to run multiple times — also picks up back-dated earns.
  */
 
 export interface ExpiryResult {
@@ -28,21 +29,6 @@ export interface ExpiryResult {
     earnedMonth: string;
     pointsExpired: number;
   }>;
-}
-
-/**
- * Get the current Bangkok month as a date string (first day of month).
- * e.g. "2026-08-01"
- */
-export function getCurrentBangkokMonth(): string {
-  const now = new Date();
-  // Get current date in Bangkok timezone
-  const bangkokDate = new Date(
-    now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' })
-  );
-  const year = bangkokDate.getFullYear();
-  const month = String(bangkokDate.getMonth() + 1).padStart(2, '0');
-  return `${year}-${month}-01`;
 }
 
 /**
@@ -62,23 +48,16 @@ export async function runExpiry(
 
   // Find all member×earned_month pairs that are eligible for expiry:
   // - earned_month + 12 months < current Bangkok month
-  // - Have EARN entries with positive net points
-  // - Do NOT already have an EXPIRY entry for that member×month
+  // - Net sum of EARN + EXPIRY entries is still positive (handles back-dated earns)
   const eligibleQuery = `
     SELECT
       pl.member_id,
       pl.earned_month,
       SUM(pl.points) AS net_points
     FROM points_ledger pl
-    WHERE pl.entry_type = 'EARN'
+    WHERE pl.entry_type IN ('EARN', 'EXPIRY')
       AND pl.earned_month IS NOT NULL
       AND pl.earned_month + INTERVAL '12 months' < $1::date
-      AND NOT EXISTS (
-        SELECT 1 FROM points_ledger ex
-        WHERE ex.member_id = pl.member_id
-          AND ex.earned_month = pl.earned_month
-          AND ex.entry_type = 'EXPIRY'
-      )
     GROUP BY pl.member_id, pl.earned_month
     HAVING SUM(pl.points) > 0
     ORDER BY pl.earned_month, pl.member_id
@@ -101,9 +80,7 @@ export async function runExpiry(
 
     for (const row of rows) {
       const pointsToExpire = -Math.abs(row.net_points); // negative entry
-      const earnedMonthStr = row.earned_month instanceof Date
-        ? row.earned_month.toISOString().substring(0, 10)
-        : String(row.earned_month);
+      const earnedMonthStr = formatPgDate(row.earned_month);
 
       await client.query(
         `INSERT INTO points_ledger (member_id, entry_type, points, description, earned_month)
