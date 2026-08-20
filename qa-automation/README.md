@@ -87,25 +87,54 @@ Cypress runs against the **dev** database (`pointhub`), not the vitest database
 `M1003` and `M1007` receive top-ups and a reset in D1.5/D4, so re-seed before a fresh
 replay verification: `cd pointhub; npm run migrate; npm run seed`.
 
-## Result of the automated run
+## Run results
 
-57 tests across 7 specs. **53 pass, 4 fail** — every failure is a real defect, reproduced
-below. A failing test means an open defect; nothing is skipped or muted.
+57 tests across 7 specs. Every failure is a real defect; nothing is skipped or muted.
 
-| Spec | Tests | Pass | Fail |
+| Spec | Tests | `7a13862` (first run) | `85ef270` (after the fix PR) |
 |---|---|---|---|
-| `a-foundation-expiry.cy.ts` | 10 | 7 | 3 (DEF-001, DEF-003, DEF-004) |
-| `b-cs-ui.cy.ts` | 16 | 16 | 0 |
-| `d1-cross-unit.cy.ts` | 5 | 5 | 0 |
-| `d2-idempotency.cy.ts` | 3 | 3 | 0 |
-| `d3-campaigns.cy.ts` | 12 | 11 | 1 (DEF-002) |
-| `d4-burn-rules.cy.ts` | 7 | 7 | 0 |
-| `e-non-functional.cy.ts` | 4 | 4 | 0 |
+| `a-foundation-expiry.cy.ts` | 10 | 7 pass / 3 fail | 9 pass / 1 fail |
+| `b-cs-ui.cy.ts` | 16 | 16 / 0 | 16 / 0 |
+| `d1-cross-unit.cy.ts` | 5 | 5 / 0 | 5 / 0 |
+| `d2-idempotency.cy.ts` | 3 | 3 / 0 | 3 / 0 |
+| `d3-campaigns.cy.ts` | 12 | 11 / 1 | 11 / 1 |
+| `d4-burn-rules.cy.ts` | 7 | 7 / 0 | 7 / 0 |
+| `e-non-functional.cy.ts` | 4 | 4 / 0 | 4 / 0 |
+| **Total** | **57** | **53 / 4** | **55 / 2** |
+
+Re-test verdict on `85ef270` (PR #5): **DEF-001 and DEF-003 closed. DEF-002 and DEF-004
+reopened** — the shared date fix does not work, see DEF-005 below.
 
 Verified environment: PostgreSQL 15 in Docker, `npm run dev` on port 3000, Cypress 15.21.0,
 Electron 37 headless.
 
-### DEF-001 (Minor, Dev B) — expiry response contract deviates from the design
+### DEF-005 (Major, Dev B) — the fix for DEF-002/DEF-004 reproduces the same bug
+
+`pointhub/src/utils/date.ts` `formatPgDate()` reads the date with `getUTCFullYear()`,
+`getUTCMonth()` and `getUTCDate()`, on the stated premise that "pg returns DATE as Date at
+midnight UTC". The premise is inverted: node-postgres builds a DATE as **local** midnight, so
+UTC getters roll back to the previous calendar day — the identical behaviour of the
+`toISOString().substring(0, 10)` code it replaced.
+
+Probed against the running server for a column storing `2026-09-12`:
+
+```
+raw from pg        : Sat Sep 12 2026 00:00:00 GMT+0700
+toISOString()      : 2026-09-11T17:00:00.000Z
+toISOString().sub  : 2026-09-11   <- old code
+UTC getters        : 2026-09-11   <- new code, same wrong answer
+LOCAL getters      : 2026-09-12   <- correct
+date::text         : 2026-09-12   <- correct
+```
+
+Still reproducing on `85ef270`: `D3.4` claws back 9 instead of 4, and a fresh expiry run
+returns `details: [{ memberId: "M1004", earnedMonth: "2023-06-30" }]` for a batch whose stored
+`earned_month` is `2023-07-01`.
+
+Fix — swap the UTC getters for local ones, or select `date::text` / `earned_month::text` in SQL
+so no `Date` object is ever constructed. The second option removes the trap for good.
+
+### DEF-001 (Minor, Dev B) — CLOSED, verified on `85ef270`
 
 `design/api-spec.md` and `design/integration.md` both specify
 `{ batchesExpired, totalPointsExpired, executedAt }`; `src/routes/admin.ts` returns
@@ -113,11 +142,14 @@ Electron 37 headless.
 names are wrong, so it breaks any cron/consumer written against the spec. Fix the route or
 amend the spec — test `A4.1b` pins whichever is chosen.
 
-### DEF-002 (Major, refund engine) — partial refunds recompute against the wrong date
+Resolved on `85ef270`: the route now returns the field names from the spec. `A4.1b` green.
 
-`src/routes/refund.ts` turns the stored transaction date back into a string with
-`original.date.toISOString().substring(0, 10)`. In UTC+7 that shifts the date **one day
-earlier**, so the recompute can land outside a campaign's day-of-week or date window.
+### DEF-002 (Major, Dev B) — REOPENED — partial refunds recompute against the wrong date
+
+`src/routes/refund.ts` turns the stored transaction date back into a string one day earlier
+than it is, so the recompute can land outside a campaign's day-of-week or date window. On
+`7a13862` that was `original.date.toISOString().substring(0, 10)`; on `85ef270` it is
+`formatPgDate(original.date)`, which computes the same wrong value (DEF-005).
 
 Reproduced by `D3.4`: basket dated Sat 12 Sep 2026 (GOLD) — FRESH 137 at C1 x3, HOME 89 at
 C2 x2, GROCERY 47 at C2 x2 → 27320 milli → 27 points. Returning line 3 should recompute the
@@ -134,7 +166,7 @@ Impact: wrong member balances after partial refunds, and Finance's year replay w
 reproduce. Suggested fix — format the date in Bangkok time instead of UTC, or select
 `date::text` from PostgreSQL so no `Date` object is involved.
 
-### DEF-003 (Minor, Dev B) — back-dated points in a settled month never expire
+### DEF-003 (Minor, Dev B) — CLOSED, verified on `85ef270`
 
 `runExpiry()` skips any `(member_id, earned_month)` pair that already has an EXPIRY row
 (`NOT EXISTS`). If an EARN is later posted into that month — a back-dated correction — those
@@ -147,7 +179,10 @@ month no longer is, so this contradicts US-005. Reproduced by `A4.2b`: settle
 Suggested fix — compare the net sum per member×month instead of testing for the existence of
 an EXPIRY row, so a top-up in a settled month is picked up on the next run.
 
-### DEF-004 (Minor, Dev B) — the EXPIRY audit description names the wrong month
+Resolved on `85ef270`: the query now sums `EARN + EXPIRY` per member×month with `HAVING > 0`,
+which both preserves idempotency and picks up back-dated earns. `A4.2b` green.
+
+### DEF-004 (Minor, Dev B) — REOPENED — the EXPIRY audit description names the wrong month
 
 Same UTC-shift root cause as DEF-002, this time in `src/jobs/expire-points.ts`. The stored
 `earned_month` is correct but the human-readable description is a day early:
@@ -162,6 +197,15 @@ The `details[].earnedMonth` field in the endpoint response carries the same shif
 ledger is Finance's audit trail, a month label that disagrees with the stored month will not
 survive review. Pinned by `A4.5`. Fixing the shared date formatting resolves DEF-002 and
 DEF-004 together.
+
+Still reproducing on `85ef270`. A fresh expiry run for an EARN dated 2023-07-15 wrote
+`earned_month = 2023-07-01` but described it as `earned month 2023-06-30`, and the endpoint
+reported `earnedMonth: "2023-06-30"`. Root cause of the failed fix: DEF-005.
+
+Note for the re-test: `A4.5` scans all EXPIRY rows for the member, so rows written by the old
+code keep it red even after a correct fix lands. Re-seed the dev DB
+(`cd pointhub; npm run migrate; npm run seed`, or recreate the container volume) before
+treating `A4.5` as a clean pass.
 
 ## Maintenance note
 
