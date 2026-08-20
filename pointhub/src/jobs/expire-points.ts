@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { logger } from '../middleware/logger';
-import { formatPgDate, getCurrentBangkokMonth } from '../utils/date';
+import { getCurrentBangkokMonth } from '../utils/date';
 
 /**
  * Point Expiry Job
@@ -49,10 +49,13 @@ export async function runExpiry(
   // Find all member×earned_month pairs that are eligible for expiry:
   // - earned_month + 12 months < current Bangkok month
   // - Net sum of EARN + EXPIRY entries is still positive (handles back-dated earns)
+  // - Cast earned_month::text to get "YYYY-MM-DD" string directly from PostgreSQL,
+  //   avoiding JS Date timezone issues (DEF-005).
   const eligibleQuery = `
     SELECT
       pl.member_id,
       pl.earned_month,
+      pl.earned_month::text AS earned_month_str,
       SUM(pl.points) AS net_points
     FROM points_ledger pl
     WHERE pl.entry_type IN ('EARN', 'EXPIRY')
@@ -80,7 +83,7 @@ export async function runExpiry(
 
     for (const row of rows) {
       const pointsToExpire = -Math.abs(row.net_points); // negative entry
-      const earnedMonthStr = formatPgDate(row.earned_month);
+      const earnedMonthStr: string = row.earned_month_str; // text from SQL, no Date object
 
       await client.query(
         `INSERT INTO points_ledger (member_id, entry_type, points, description, earned_month)
