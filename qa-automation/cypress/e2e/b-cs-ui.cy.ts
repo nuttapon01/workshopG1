@@ -80,6 +80,15 @@ describe('Section B — Customer-Service UI (Dev A)', () => {
 
   describe('B3: Transaction history (US-002)', () => {
     it('B3.1 — history table lists date, type, points and description', () => {
+      // Self-sufficient: guarantee at least one row instead of relying on replay data
+      // already being in the dev database.
+      api.adjustment({
+        memberId: 'M1001',
+        points: 5,
+        reasonCode: 'GOODWILL',
+        description: 'QA B3.1 history fixture',
+      });
+
       cy.lookupMember('M1001');
       cy.get(sel.historyCard).should('be.visible');
       cy.get(sel.historyCard).within(() => {

@@ -91,24 +91,31 @@ replay verification: `cd pointhub; npm run migrate; npm run seed`.
 
 57 tests across 7 specs. Every failure is a real defect; nothing is skipped or muted.
 
-| Spec | Tests | `7a13862` (first run) | `85ef270` (after the fix PR) |
-|---|---|---|---|
-| `a-foundation-expiry.cy.ts` | 10 | 7 pass / 3 fail | 9 pass / 1 fail |
-| `b-cs-ui.cy.ts` | 16 | 16 / 0 | 16 / 0 |
-| `d1-cross-unit.cy.ts` | 5 | 5 / 0 | 5 / 0 |
-| `d2-idempotency.cy.ts` | 3 | 3 / 0 | 3 / 0 |
-| `d3-campaigns.cy.ts` | 12 | 11 / 1 | 11 / 1 |
-| `d4-burn-rules.cy.ts` | 7 | 7 / 0 | 7 / 0 |
-| `e-non-functional.cy.ts` | 4 | 4 / 0 | 4 / 0 |
-| **Total** | **57** | **53 / 4** | **55 / 2** |
+| Spec | Tests | `7a13862` first run | `85ef270` PR #5 | `0129b67` PR #6 |
+|---|---|---|---|---|
+| `a-foundation-expiry.cy.ts` | 10 | 7 / 3 | 9 / 1 | **10 / 0** |
+| `b-cs-ui.cy.ts` | 16 | 16 / 0 | 16 / 0 | 16 / 0 |
+| `d1-cross-unit.cy.ts` | 5 | 5 / 0 | 5 / 0 | 5 / 0 |
+| `d2-idempotency.cy.ts` | 3 | 3 / 0 | 3 / 0 | 3 / 0 |
+| `d3-campaigns.cy.ts` | 12 | 11 / 1 | 11 / 1 | **12 / 0** |
+| `d4-burn-rules.cy.ts` | 7 | 7 / 0 | 7 / 0 | 7 / 0 |
+| `e-non-functional.cy.ts` | 4 | 4 / 0 | 4 / 0 | 4 / 0 |
+| **Total** | **57** | **53 / 4** | **55 / 2** | **57 / 0** |
 
-Re-test verdict on `85ef270` (PR #5): **DEF-001 and DEF-003 closed. DEF-002 and DEF-004
-reopened** — the shared date fix does not work, see DEF-005 below.
+Verdicts:
+
+- `85ef270` (PR #5) — DEF-001 and DEF-003 closed. DEF-002 and DEF-004 reopened; the shared
+  date helper reproduced the same bug, raised as DEF-005.
+- `0129b67` (PR #6) — **all five defects closed, 57/57 green.** Confirmed on a re-seeded
+  database, then confirmed a second time without re-seeding, so the suite is repeatable.
 
 Verified environment: PostgreSQL 15 in Docker, `npm run dev` on port 3000, Cypress 15.21.0,
 Electron 37 headless.
 
-### DEF-005 (Major, Dev B) — the fix for DEF-002/DEF-004 reproduces the same bug
+All defects below are **CLOSED as of `0129b67`**. The history is kept because the DEF-005 round
+trip is the useful part of the record.
+
+### DEF-005 (Major, Dev B) — CLOSED — the fix for DEF-002/DEF-004 reproduced the same bug
 
 `pointhub/src/utils/date.ts` `formatPgDate()` reads the date with `getUTCFullYear()`,
 `getUTCMonth()` and `getUTCDate()`, on the stated premise that "pg returns DATE as Date at
@@ -134,6 +141,11 @@ returns `details: [{ memberId: "M1004", earnedMonth: "2023-06-30" }]` for a batc
 Fix — swap the UTC getters for local ones, or select `date::text` / `earned_month::text` in SQL
 so no `Date` object is ever constructed. The second option removes the trap for good.
 
+Resolved on `0129b67` (PR #6), which took both routes: `refund.ts` and `expire-points.ts` now
+read `date::text` / `earned_month::text` straight from SQL and construct no `Date` at all, and
+`formatPgDate()` was corrected to local getters as a safety net for any future caller. `D3.4`
+and `A4.5` green.
+
 ### DEF-001 (Minor, Dev B) — CLOSED, verified on `85ef270`
 
 `design/api-spec.md` and `design/integration.md` both specify
@@ -144,7 +156,7 @@ amend the spec — test `A4.1b` pins whichever is chosen.
 
 Resolved on `85ef270`: the route now returns the field names from the spec. `A4.1b` green.
 
-### DEF-002 (Major, Dev B) — REOPENED — partial refunds recompute against the wrong date
+### DEF-002 (Major, Dev B) — CLOSED on `0129b67`, reopened once on `85ef270`
 
 `src/routes/refund.ts` turns the stored transaction date back into a string one day earlier
 than it is, so the recompute can land outside a campaign's day-of-week or date window. On
@@ -166,6 +178,9 @@ Impact: wrong member balances after partial refunds, and Finance's year replay w
 reproduce. Suggested fix — format the date in Bangkok time instead of UTC, or select
 `date::text` from PostgreSQL so no `Date` object is involved.
 
+Resolved on `0129b67`: the route selects `date::text AS date_str` and passes that string to the
+recompute. `D3.4` claws back 4 as specified.
+
 ### DEF-003 (Minor, Dev B) — CLOSED, verified on `85ef270`
 
 `runExpiry()` skips any `(member_id, earned_month)` pair that already has an EXPIRY row
@@ -182,7 +197,7 @@ an EXPIRY row, so a top-up in a settled month is picked up on the next run.
 Resolved on `85ef270`: the query now sums `EARN + EXPIRY` per member×month with `HAVING > 0`,
 which both preserves idempotency and picks up back-dated earns. `A4.2b` green.
 
-### DEF-004 (Minor, Dev B) — REOPENED — the EXPIRY audit description names the wrong month
+### DEF-004 (Minor, Dev B) — CLOSED on `0129b67`, reopened once on `85ef270`
 
 Same UTC-shift root cause as DEF-002, this time in `src/jobs/expire-points.ts`. The stored
 `earned_month` is correct but the human-readable description is a day early:
@@ -198,14 +213,16 @@ ledger is Finance's audit trail, a month label that disagrees with the stored mo
 survive review. Pinned by `A4.5`. Fixing the shared date formatting resolves DEF-002 and
 DEF-004 together.
 
-Still reproducing on `85ef270`. A fresh expiry run for an EARN dated 2023-07-15 wrote
+Reproduced again on `85ef270`: a fresh expiry run for an EARN dated 2023-07-15 wrote
 `earned_month = 2023-07-01` but described it as `earned month 2023-06-30`, and the endpoint
-reported `earnedMonth: "2023-06-30"`. Root cause of the failed fix: DEF-005.
+reported `earnedMonth: "2023-06-30"`. Root cause of that failed fix: DEF-005.
 
-Note for the re-test: `A4.5` scans all EXPIRY rows for the member, so rows written by the old
-code keep it red even after a correct fix lands. Re-seed the dev DB
-(`cd pointhub; npm run migrate; npm run seed`, or recreate the container volume) before
-treating `A4.5` as a clean pass.
+Resolved on `0129b67`: the job selects `earned_month::text AS earned_month_str` and writes that
+string into the description. `A4.5` green.
+
+Note for any future re-test: `A4.5` scans all EXPIRY rows for the member, so rows written by the
+old code keep it red even after a correct fix lands. Clear the ledger before treating it as a
+clean pass — `TRUNCATE points_ledger, transaction_lines, transactions;` then re-seed.
 
 ## Maintenance note
 
