@@ -5,12 +5,23 @@ import pinoHttp from 'pino-http';
  * Application logger instance.
  * Use this for structured logging throughout the app.
  */
+const isTest = Boolean(process.env.VITEST);
+
+// Under vitest the per-request log lines bury the assertion output, so default
+// to silent there. LOG_LEVEL still wins if you need the logs back while debugging.
+const defaultLevel = isTest ? 'silent' : 'info';
+
+// A pino transport runs on a worker thread. Nothing closes that thread when a
+// test file finishes, which leaves the vitest worker alive and the run hangs
+// after the summary. Tests therefore log straight to stdout, no transport.
+const transport =
+  isTest || process.env.NODE_ENV === 'production'
+    ? undefined
+    : { target: 'pino/file', options: { destination: 1 } };
+
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-  transport:
-    process.env.NODE_ENV !== 'production'
-      ? { target: 'pino/file', options: { destination: 1 } } // stdout pretty in dev
-      : undefined,
+  level: process.env.LOG_LEVEL || defaultLevel,
+  transport,
   base: { service: 'pointhub' },
 });
 
