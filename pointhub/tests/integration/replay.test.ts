@@ -49,62 +49,68 @@ interface ExpectedRow {
 function parseCsv(filePath: string): CsvRow[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
-  const headers = lines[0].split(',');
 
-  return lines.slice(1).filter(line => line.trim()).map(line => {
-    const values = line.split(',');
-    return {
-      transactionId: values[0],
-      type: values[1],
-      originalTransactionId: values[2] || '',
-      date: values[3],
-      time: values[4],
-      storeId: values[5],
-      memberId: values[6],
-      tier: values[7],
-      lineNo: parseInt(values[8], 10),
-      category: values[9],
-      amountTHB: parseInt(values[10], 10),
-    };
-  });
+  // Columns are read positionally below; the header row is skipped, not parsed.
+  return lines
+    .slice(1)
+    .filter((line) => line.trim())
+    .map((line) => {
+      const values = line.split(',');
+      return {
+        transactionId: values[0],
+        type: values[1],
+        originalTransactionId: values[2] || '',
+        date: values[3],
+        time: values[4],
+        storeId: values[5],
+        memberId: values[6],
+        tier: values[7],
+        lineNo: parseInt(values[8], 10),
+        category: values[9],
+        amountTHB: parseInt(values[10], 10),
+      };
+    });
 }
 
 function parseExpectedCsv(filePath: string): ExpectedRow[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
 
-  return lines.slice(1).filter(line => line.trim()).map(line => {
-    // Handle CSV with possible quoted fields containing commas
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
+  return lines
+    .slice(1)
+    .filter((line) => line.trim())
+    .map((line) => {
+      // Handle CSV with possible quoted fields containing commas
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
 
-    for (const char of line) {
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        values.push(current);
-        current = '';
-      } else {
-        current += char;
+      for (const char of line) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
       }
-    }
-    values.push(current);
+      values.push(current);
 
-    return {
-      transactionId: values[0],
-      type: values[1],
-      originalTransactionId: values[2] || '',
-      date: values[3],
-      memberId: values[4],
-      tier: values[5],
-      lines: parseInt(values[6], 10),
-      basketTHB: parseInt(values[7], 10),
-      basketMilliPoints: parseInt(values[8] || '0', 10),
-      pointsPosted: parseInt(values[9], 10),
-      note: values[10] || '',
-    };
-  });
+      return {
+        transactionId: values[0],
+        type: values[1],
+        originalTransactionId: values[2] || '',
+        date: values[3],
+        memberId: values[4],
+        tier: values[5],
+        lines: parseInt(values[6], 10),
+        basketTHB: parseInt(values[7], 10),
+        basketMilliPoints: parseInt(values[8] || '0', 10),
+        pointsPosted: parseInt(values[9], 10),
+        note: values[10] || '',
+      };
+    });
 }
 
 interface GroupedTransaction {
@@ -166,7 +172,7 @@ const EXPECTED_BALANCES: Record<string, number> = {
 function readMembersCsv(filePath: string): Array<{ id: string; tier: string; joinedAt: string }> {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
-  const header = lines[0].split(',').map(h => h.trim());
+  const header = lines[0].split(',').map((h) => h.trim());
   const iId = header.indexOf('memberId');
   const iTier = header.indexOf('tier');
   const iJoined = header.indexOf('joinedAt');
@@ -177,10 +183,10 @@ function readMembersCsv(filePath: string): Array<{ id: string; tier: string; joi
 
   return lines
     .slice(1)
-    .map(l => l.trim())
-    .filter(l => l.length > 0)
-    .map(l => {
-      const v = l.split(',').map(s => s.trim());
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .map((l) => {
+      const v = l.split(',').map((s) => s.trim());
       return { id: v[iId], tier: v[iTier], joinedAt: v[iJoined] };
     });
 }
@@ -188,29 +194,59 @@ function readMembersCsv(filePath: string): Array<{ id: string; tier: string; joi
 // Campaigns matching seed.ts (source: sample-data/campaign-examples.md)
 const INTEGRATION_CAMPAIGNS = [
   {
-    id: 'C1', name: 'Fresh Weekend', multiplier: 3000,
-    category: 'FRESH', tier: null, dayOfWeek: [0, 6],
-    startDate: '2026-09-01', endDate: '2026-09-30', priority: 10,
+    id: 'C1',
+    name: 'Fresh Weekend',
+    multiplier: 3000,
+    category: 'FRESH',
+    tier: null,
+    dayOfWeek: [0, 6],
+    startDate: '2026-09-01',
+    endDate: '2026-09-30',
+    priority: 10,
   },
   {
-    id: 'C2', name: 'Gold Boost', multiplier: 2000,
-    category: null, tier: 'GOLD', dayOfWeek: null,
-    startDate: '2026-09-01', endDate: '2026-09-15', priority: 20,
+    id: 'C2',
+    name: 'Gold Boost',
+    multiplier: 2000,
+    category: null,
+    tier: 'GOLD',
+    dayOfWeek: null,
+    startDate: '2026-09-01',
+    endDate: '2026-09-15',
+    priority: 20,
   },
   {
-    id: 'C3', name: 'Platinum Everyday', multiplier: 2500,
-    category: null, tier: 'PLATINUM', dayOfWeek: null,
-    startDate: null, endDate: null, priority: 30,
+    id: 'C3',
+    name: 'Platinum Everyday',
+    multiplier: 2500,
+    category: null,
+    tier: 'PLATINUM',
+    dayOfWeek: null,
+    startDate: null,
+    endDate: null,
+    priority: 30,
   },
   {
-    id: 'C4', name: 'Payday Splurge', multiplier: 5000,
-    category: null, tier: null, dayOfWeek: null,
-    startDate: '2026-09-25', endDate: '2026-09-28', priority: 100,
+    id: 'C4',
+    name: 'Payday Splurge',
+    multiplier: 5000,
+    category: null,
+    tier: null,
+    dayOfWeek: null,
+    startDate: '2026-09-25',
+    endDate: '2026-09-28',
+    priority: 100,
   },
   {
-    id: 'C5', name: 'Home & Living Push', multiplier: 2000,
-    category: 'HOME', tier: null, dayOfWeek: null,
-    startDate: '2026-09-10', endDate: '2026-10-10', priority: 15,
+    id: 'C5',
+    name: 'Home & Living Push',
+    multiplier: 2000,
+    category: 'HOME',
+    tier: null,
+    dayOfWeek: null,
+    startDate: '2026-09-10',
+    endDate: '2026-10-10',
+    priority: 15,
   },
 ];
 
@@ -243,15 +279,15 @@ describe('Integration: Full Transaction Replay', () => {
   });
 
   it('processes 40 sales and 3 refunds from transactions.csv', async () => {
-    const sales = transactions.filter(tx => tx.type === 'SALE');
-    const refunds = transactions.filter(tx => tx.type === 'REFUND');
+    const sales = transactions.filter((tx) => tx.type === 'SALE');
+    const refunds = transactions.filter((tx) => tx.type === 'REFUND');
 
     expect(sales.length).toBe(40);
     expect(refunds.length).toBe(3);
   });
 
   it('correctly calculates points for each transaction (vs expected-points.csv)', async () => {
-    const sales = transactions.filter(tx => tx.type === 'SALE');
+    const sales = transactions.filter((tx) => tx.type === 'SALE');
     const mismatches: string[] = [];
 
     // Process all sales
@@ -275,12 +311,12 @@ describe('Integration: Full Transaction Replay', () => {
       expect(res.status).toBe(200);
 
       // Compare with expected-points.csv
-      const expected = expectedPoints.find(e => e.transactionId === sale.transactionId);
+      const expected = expectedPoints.find((e) => e.transactionId === sale.transactionId);
       if (expected) {
         if (res.body.pointsPosted !== expected.pointsPosted) {
           mismatches.push(
             `${sale.transactionId}: expected=${expected.pointsPosted}, actual=${res.body.pointsPosted}, ` +
-            `milliPoints expected=${expected.basketMilliPoints}, actual=${res.body.totalMilliPoints}`
+              `milliPoints expected=${expected.basketMilliPoints}, actual=${res.body.totalMilliPoints}`
           );
         }
       }
@@ -289,13 +325,13 @@ describe('Integration: Full Transaction Replay', () => {
     // Report mismatches
     if (mismatches.length > 0) {
       console.error('=== POINT MISMATCHES ===');
-      mismatches.forEach(m => console.error(m));
+      mismatches.forEach((m) => console.error(m));
     }
     expect(mismatches).toHaveLength(0);
   });
 
   it('correctly processes refunds', async () => {
-    const refunds = transactions.filter(tx => tx.type === 'REFUND');
+    const refunds = transactions.filter((tx) => tx.type === 'REFUND');
 
     for (const refund of refunds) {
       const payload = {
@@ -317,7 +353,7 @@ describe('Integration: Full Transaction Replay', () => {
       expect(res.status).toBe(200);
 
       // Compare with expected-points.csv
-      const expected = expectedPoints.find(e => e.transactionId === refund.transactionId);
+      const expected = expectedPoints.find((e) => e.transactionId === refund.transactionId);
       if (expected) {
         // pointsPosted in expected CSV for refunds is negative (the clawback amount)
         const expectedClawback = -expected.pointsPosted; // e.g., -(-507) = 507
@@ -332,15 +368,13 @@ describe('Integration: Full Transaction Replay', () => {
     for (const [memberId, expectedBalance] of Object.entries(EXPECTED_BALANCES)) {
       const actualBalance = await getBalance(pool, memberId);
       if (actualBalance !== expectedBalance) {
-        balanceMismatches.push(
-          `${memberId}: expected=${expectedBalance}, actual=${actualBalance}`
-        );
+        balanceMismatches.push(`${memberId}: expected=${expectedBalance}, actual=${actualBalance}`);
       }
     }
 
     if (balanceMismatches.length > 0) {
       console.error('=== BALANCE MISMATCHES ===');
-      balanceMismatches.forEach(m => console.error(m));
+      balanceMismatches.forEach((m) => console.error(m));
     }
 
     // Assert each balance individually for clear error messages

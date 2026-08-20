@@ -70,9 +70,7 @@ describe('POST /api/earn', () => {
         memberId: 'M001',
         tier: 'GOLD',
         date: '2026-09-27', // Saturday — C1 FRESH x3 applies
-        lines: [
-          { lineNo: 1, category: 'FRESH', amountTHB: 250 },
-        ],
+        lines: [{ lineNo: 1, category: 'FRESH', amountTHB: 250 }],
       });
 
       const res = await earnPoints(payload);
@@ -106,7 +104,14 @@ describe('POST /api/earn', () => {
     it('returns 400 when transactionId is missing', async () => {
       const res = await apiClient()
         .post('/api/earn')
-        .send({ date: '2026-09-10', time: '10:00', storeId: 'S001', memberId: 'M001', tier: 'GOLD', lines: [{ lineNo: 1, category: 'FRESH', amountTHB: 100 }] })
+        .send({
+          date: '2026-09-10',
+          time: '10:00',
+          storeId: 'S001',
+          memberId: 'M001',
+          tier: 'GOLD',
+          lines: [{ lineNo: 1, category: 'FRESH', amountTHB: 100 }],
+        })
         .set('Content-Type', 'application/json');
 
       expect(res.status).toBe(400);
@@ -116,7 +121,15 @@ describe('POST /api/earn', () => {
     it('returns 400 when lines are empty', async () => {
       const res = await apiClient()
         .post('/api/earn')
-        .send({ transactionId: 'TX-BAD', date: '2026-09-10', time: '10:00', storeId: 'S001', memberId: 'M001', tier: 'GOLD', lines: [] })
+        .send({
+          transactionId: 'TX-BAD',
+          date: '2026-09-10',
+          time: '10:00',
+          storeId: 'S001',
+          memberId: 'M001',
+          tier: 'GOLD',
+          lines: [],
+        })
         .set('Content-Type', 'application/json');
 
       expect(res.status).toBe(400);
@@ -126,7 +139,14 @@ describe('POST /api/earn', () => {
     it('returns 400 when memberId is missing', async () => {
       const res = await apiClient()
         .post('/api/earn')
-        .send({ transactionId: 'TX-BAD2', date: '2026-09-10', time: '10:00', storeId: 'S001', tier: 'GOLD', lines: [{ lineNo: 1, category: 'FRESH', amountTHB: 100 }] })
+        .send({
+          transactionId: 'TX-BAD2',
+          date: '2026-09-10',
+          time: '10:00',
+          storeId: 'S001',
+          tier: 'GOLD',
+          lines: [{ lineNo: 1, category: 'FRESH', amountTHB: 100 }],
+        })
         .set('Content-Type', 'application/json');
 
       expect(res.status).toBe(400);

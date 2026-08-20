@@ -1,0 +1,69 @@
+# Gitleaks configuration for the PointHub workshop repository.
+#
+# The repository is PUBLIC, so this runs in two places:
+#   - pre-commit hook  : `gitleaks git --staged`  (fast feedback, fail-open if the
+#                        binary is missing — see .husky/pre-commit)
+#   - CI `secrets` job : `gitleaks git` over full history (authoritative gate)
+#
+# Tested against gitleaks 8.30.1. Note that the `protect` subcommand was removed
+# in gitleaks 8.x; staged scanning is `gitleaks git --staged`.
+
+[extend]
+# Inherit the ~170 upstream rules (including aws-access-token, which covers the
+# AKIA/ASIA/ABIA/ACCA + 16 char access key IDs) and add exceptions below.
+useDefault = true
+
+[[rules]]
+# Explicit rule for AWS *static* credential pairs written into config files.
+# The upstream aws-access-token rule catches the key id; this catches the secret
+# access key when it appears next to an assignment, which is the shape that
+# `aws configure` output and copy-pasted snippets take.
+id = "aws-secret-access-key-assignment"
+description = "AWS secret access key in an assignment"
+regex = '''(?i)(?:aws)?_?secret_?access_?key["'\s]*[:=]\s*["']?([A-Za-z0-9/+=]{40})["']?'''
+secretGroup = 1
+keywords = ["secret_access_key", "secretaccesskey"]
+
+[[rules]]
+# The upstream `aws-access-token` rule only fires when an `aws_access_key_id`
+# style keyword sits next to the value, so the shape a TypeScript developer
+# actually writes —
+#     const cfg = { accessKeyId: "AKIA..." }
+# — goes undetected. Verified against gitleaks 8.30.1. This rule matches the
+# access key id prefixes on their own, with no context requirement.
+id = "aws-access-key-id-bare"
+description = "AWS access key ID (context-free)"
+regex = '''\b((?:A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16})\b'''
+secretGroup = 1
+keywords = ["AKIA", "ASIA", "ABIA", "ACCA", "A3T"]
+
+[allowlist]
+description = "PointHub workshop exceptions"
+
+paths = [
+  # Webpack output. `pointhub/public/bundle.js` is a committed 5 MB minified
+  # bundle of React + antd; the generic-api-key rule fires on minified vendor
+  # strings inside it. Scanning it also dominates full-history scan time.
+  # (Recommendation on record: untrack this artifact — it is rebuilt by
+  # `client/npm run build` and by the Dockerfile client-build stage.)
+  '''pointhub/public/bundle\.js$''',
+  '''pointhub/public/bundle\.js\.map$''',
+  '''pointhub/public/bundle\.css$''',
+  # Lockfiles contain integrity hashes that look like high-entropy secrets.
+  '''package-lock\.json$''',
+  # CDK synth output is generated and gitignored, but keep it out of dir scans.
+  '''^infra/cdk\.out/''',
+]
+
+regexes = [
+  # Local development database credentials. These are the Docker Compose
+  # defaults in local-environment/docker-compose.yml and the fallback values in
+  # src/db/pool.ts / src/db/seed.ts. They grant access to nothing outside a
+  # developer laptop; the deployed service takes its password from Secrets
+  # Manager instead (see infra/lib/data-stack.ts).
+  '''pointhub:pointhub''',
+  '''(DB_PASSWORD|POSTGRES_PASSWORD)\s*[:=]\s*['"]?pointhub['"]?''',
+  # Placeholder / example values used in specs and docs.
+  '''AKIAIOSFODNN7EXAMPLE''',
+  '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',
+]

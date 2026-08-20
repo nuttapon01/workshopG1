@@ -25,13 +25,16 @@ function gracefulShutdown(signal: string) {
     }
 
     // Drain and close the database pool
-    pool.end().then(() => {
-      logger.info('Database pool closed');
-      process.exit(0);
-    }).catch((poolErr) => {
-      logger.error({ err: poolErr }, 'Error closing database pool');
-      process.exit(1);
-    });
+    pool
+      .end()
+      .then(() => {
+        logger.info('Database pool closed');
+        process.exit(0);
+      })
+      .catch((poolErr) => {
+        logger.error({ err: poolErr }, 'Error closing database pool');
+        process.exit(1);
+      });
   });
 
   // Force exit if graceful shutdown takes too long (10s)

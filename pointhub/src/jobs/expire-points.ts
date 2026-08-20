@@ -38,10 +38,7 @@ export interface ExpiryResult {
  * @param overrideCurrentMonth - Optional override for testing (format: "YYYY-MM-01")
  * @returns ExpiryResult with details of what was expired
  */
-export async function runExpiry(
-  pool: Pool,
-  overrideCurrentMonth?: string
-): Promise<ExpiryResult> {
+export async function runExpiry(pool: Pool, overrideCurrentMonth?: string): Promise<ExpiryResult> {
   const currentMonth = overrideCurrentMonth || getCurrentBangkokMonth();
 
   logger.info({ currentMonth }, 'Starting point expiry job');
@@ -113,10 +110,7 @@ export async function runExpiry(
     client.release();
   }
 
-  logger.info(
-    { expiredCount: details.length, totalPointsExpired },
-    'Point expiry job completed'
-  );
+  logger.info({ expiredCount: details.length, totalPointsExpired }, 'Point expiry job completed');
 
   return {
     expiredCount: details.length,

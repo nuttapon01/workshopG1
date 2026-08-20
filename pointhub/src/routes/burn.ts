@@ -12,7 +12,7 @@ interface BurnRequest {
 
 /**
  * POST /api/burn
- * 
+ *
  * Redeems (burns) points at checkout.
  * Rules:
  * - 1 point = 0.25 THB
@@ -26,7 +26,9 @@ burnRouter.post('/', async (req: Request, res: Response) => {
     const { memberId, points, basketTotalTHB, transactionId }: BurnRequest = req.body;
 
     if (!memberId || !points || !basketTotalTHB) {
-      return res.status(400).json({ error: 'Missing required fields: memberId, points, basketTotalTHB' });
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: memberId, points, basketTotalTHB' });
     }
 
     // Validation: minimum 100 points
@@ -43,7 +45,7 @@ burnRouter.post('/', async (req: Request, res: Response) => {
     // 1 point = 0.25 THB, so points * 0.25 = THB value, which must be <= 50% of basket
     // Using integer math: points * 25 (satang) vs basketTotalTHB * 100 (satang) * 50%
     // points * 25 <= basketTotalTHB * 50  =>  points <= basketTotalTHB * 2
-    const maxPoints = Math.floor(basketTotalTHB * 2 / 100) * 100; // max redeemable, rounded down to multiple of 100
+    const maxPoints = Math.floor((basketTotalTHB * 2) / 100) * 100; // max redeemable, rounded down to multiple of 100
     if (points > maxPoints) {
       return res.status(400).json({
         error: `Cannot redeem more than 50% of basket. Max redeemable: ${maxPoints} points`,
@@ -72,7 +74,12 @@ burnRouter.post('/', async (req: Request, res: Response) => {
     await pool.query(
       `INSERT INTO points_ledger (member_id, transaction_id, entry_type, points, description)
        VALUES ($1, $2, 'BURN', $3, $4)`,
-      [memberId, transactionId || null, -points, `Redeemed ${points} points for ${discountTHB} THB discount`]
+      [
+        memberId,
+        transactionId || null,
+        -points,
+        `Redeemed ${points} points for ${discountTHB} THB discount`,
+      ]
     );
 
     // The earn calculation for this basket should be on (basketTotalTHB - discountTHB) only

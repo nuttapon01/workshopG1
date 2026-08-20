@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
-import {
-  getTestPool,
-  seedMembers,
-  clearAll,
-  insertLedgerEntry,
-  apiClient,
-} from '../helpers';
+import { getTestPool, seedMembers, clearAll, insertLedgerEntry, apiClient } from '../helpers';
 
 describe('POST /api/burn', () => {
   let pool: Pool;
@@ -21,9 +15,7 @@ describe('POST /api/burn', () => {
 
   beforeEach(async () => {
     await clearAll(pool);
-    await seedMembers(pool, [
-      { id: 'M001', tier: 'GOLD', joinedAt: '2020-01-15' },
-    ]);
+    await seedMembers(pool, [{ id: 'M001', tier: 'GOLD', joinedAt: '2020-01-15' }]);
     // Give member 1000 points balance
     await insertLedgerEntry(pool, {
       memberId: 'M001',

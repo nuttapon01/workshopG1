@@ -23,6 +23,13 @@ import pool from './db/pool';
  */
 const app = express();
 
+// Behind the Application Load Balancer there is exactly one proxy hop. Trusting
+// it makes req.ip and req.protocol reflect the original client rather than the
+// load balancer's private address, which is what the pino-http access log
+// records. `1` rather than `true`: trusting the whole X-Forwarded-For chain
+// would let a caller spoof its own source address by presenting the header.
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(requestLogger);

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PointHub — Team Summary</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#1a1a2e;font-family:"Leelawadee UI","Noto Sans Thai","Sarabun",Tahoma,sans-serif;line-height:1.6}
+.stage{width:1280px;height:720px;position:absolute;top:50%;left:50%;transform-origin:center center;background:#fff;overflow:hidden}
+.slide{width:1280px;height:720px;display:none;padding:60px 70px;position:relative;flex-direction:column;justify-content:flex-start}
+.slide.active{display:flex}
+.slide-number{position:absolute;bottom:16px;right:24px;font-size:14px;color:#888}
+h1{font-size:36px;font-weight:700;color:#1a1a2e;margin-bottom:16px;line-height:1.4}
+h2{font-size:28px;font-weight:700;color:#2d3436;margin-bottom:14px;line-height:1.4}
+h3{font-size:22px;font-weight:600;color:#2d3436;margin-bottom:10px;line-height:1.4}
+p,.text{font-size:20px;color:#2d3436;margin-bottom:12px;line-height:1.7}
+.subtitle{font-size:20px;color:#636e72;margin-bottom:8px}
+.accent{color:#0984e3}
+.highlight{background:#dfe6e9;padding:4px 12px;border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:17px;margin-bottom:12px}
+th{background:#0984e3;color:#fff;padding:8px 12px;text-align:left;font-weight:600}
+td{padding:7px 12px;border-bottom:1px solid #dfe6e9;vertical-align:top}
+tr:nth-child(even){background:#f8f9fa}
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:14px;font-weight:600;margin-right:6px}
+.tag-exec{background:#00b894;color:#fff}
+.tag-skip{background:#fdcb6e;color:#2d3436}
+.tag-na{background:#b2bec3;color:#fff}
+.big-number{font-size:64px;font-weight:700;color:#0984e3;line-height:1.2}
+.big-quote{font-size:26px;font-style:italic;color:#2d3436;border-left:4px solid #0984e3;padding-left:20px;margin:16px 0;line-height:1.7}
+.divider-slide{display:flex;align-items:center;justify-content:center;text-align:center}
+.divider-slide h1{font-size:48px;color:#0984e3}
+.title-slide{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.title-slide h1{font-size:42px;margin-bottom:12px}
+.title-slide .subtitle{font-size:22px;margin-bottom:24px}
+.title-slide .stats{font-size:20px;color:#636e72;margin-top:16px}
+.card{background:#f8f9fa;border:1px solid #dfe6e9;border-radius:8px;padding:16px 20px;margin-bottom:12px}
+.cols{display:flex;gap:24px}
+.cols>div{flex:1}
+.note{font-size:16px;color:#b2bec3;font-style:italic;margin-top:8px}
+.scroll-hint{text-align:center;font-size:14px;color:#b2bec3;margin-top:4px}
+.scrollable{max-height:480px;overflow-y:auto;border:1px solid #dfe6e9;border-radius:4px;padding:8px}
+.scrollable::-webkit-scrollbar{width:8px}
+.scrollable::-webkit-scrollbar-thumb{background:#b2bec3;border-radius:4px}
+.empty{color:#b2bec3;font-style:italic;font-size:18px}
+ul{padding-left:24px;margin-bottom:12px}
+li{margin-bottom:6px;font-size:19px;line-height:1.6}
+.timestamp{font-size:15px;color:#636e72;font-family:monospace}
+.nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;background:rgba(9,132,227,0.85);color:#fff;border:none;border-radius:50%;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;transition:opacity .2s;opacity:0.7}
+.nav-btn:hover{opacity:1;background:rgba(9,132,227,1)}
+.nav-btn.prev{left:12px}
+.nav-btn.next{right:12px}
+.nav-btn:disabled{opacity:0.2;cursor:default}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+<!-- SLIDE 1: Title -->
+<div class="slide title-slide">
+<h1>PointHub — Loyalty Points &amp; Rewards Service</h1>
+<p class="subtitle">Group 1 &middot; Siam MegaMart &middot; Greenfield</p>
+<p class="subtitle">19–20 สิงหาคม 2569</p>
+<p class="stats">สองวัน &middot; รัน <strong>5 จาก 9</strong> stage &middot; <strong>4</strong> unit of work &middot; <strong>19</strong> commit &middot; <strong>32</strong> การตัดสินใจที่บันทึกไว้</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 2: สองวันนี้เราทำอะไร (contents) -->
+<div class="slide">
+<h1>สองวันนี้เราทำอะไร</h1>
+<ul>
+<li>สร้างระบบ Loyalty Points ให้ Siam MegaMart — earn, burn, refund, campaign, expiry, CS UI</li>
+<li>ใช้ AI-DLC workflow ครบ 5 phase (Context → Requirements → Decomposition → Design → Tasks) แล้วเข้า Implementation</li>
+<li>แบ่งงาน 4 unit: CS UI (Dev A), Expiry+Foundation (Dev B), Validation (Dev C), QA (Test1) — ทำพร้อมกัน</li>
+<li>QA พบ 5 defects, แก้ไขและปิดทั้งหมด — suite จบที่ 57/57 green</li>
+<li>ไม่ได้กรอก team-log.md และ traceability-worksheet.md</li>
+</ul>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 3: What we built -->
+<div class="slide">
+<h1>1. สิ่งที่เราสร้าง</h1>
+<p>PointHub คือบริการ loyalty points สำหรับ Siam MegaMart (120 สาขา, 800,000 สมาชิก) — รวมการคำนวณแต้มไว้ที่ API กลาง แทนที่ logic ที่กระจายอยู่ใน 3 ระบบเดิม</p>
+<p>สิ่งที่ทำงานได้ตอนนี้: Earn/Burn/Refund API พร้อม campaign multiplier, Customer-Service UI (React + Ant Design), Point expiry job, Integration test replay ผ่าน expected-points.csv ครบทุก transaction</p>
+<p>ใช้สำหรับ: POS terminals, CS agents (หน้าจอค้นหาสมาชิกและปรับแต้ม), Marketing (Campaign API), Finance (Liability report)</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 4: How we worked — AI-DLC in one slide -->
+<div class="slide">
+<h1>2. วิธีทำงาน — AI-DLC</h1>
+<div class="cols">
+<div>
+<h3>หลักการ</h3>
+<ul>
+<li>Agent เสนอ, มนุษย์อนุมัติ</li>
+<li>ทุก stage จบที่ gate — ไม่มีใครอนุมัติ ไม่เดินหน้า</li>
+<li>Workflow Planning ตัดสินใจ EXECUTE/SKIP ต่อ stage</li>
+<li>คำถามของ agent อยู่ในไฟล์ มี <code>[Answer]:</code> tag — ตอบในไฟล์ ไม่ใช่ใน chat</li>
+</ul>
+</div>
+<div>
+<h3>Extension (ตัดสินใจที่ Requirements)</h3>
+<ul>
+<li>Security — ไม่ได้บันทึกเหตุผลไว้</li>
+<li>Resiliency — ไม่ได้บันทึกเหตุผลไว้</li>
+<li>Property-Based Testing — ปฏิเสธ</li>
+</ul>
+<p class="note">PBT rationale อยู่ใน decisions-design.md D3-9: "Replay test is sufficient — expected-points.csv covers all edge cases"</p>
+</div>
+</div>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 5: The path our team took -->
+<div class="slide">
+<h1>3. เส้นทางของทีม — 9 Stages</h1>
+<table>
+<tr><th>Stage</th><th>สถานะ</th><th>หมายเหตุ</th></tr>
+<tr><td>Workspace Detection</td><td><span class="tag tag-exec">EXECUTE</span></td><td>ตรวจพบ brownfield (backend มีอยู่แล้ว)</td></tr>
+<tr><td>Reverse Engineering</td><td><span class="tag tag-na">ไม่ปรากฏใน audit</span></td><td>ไม่มี record ใน audit.md ว่า execute หรือ skip</td></tr>
+<tr><td>Requirements Analysis</td><td><span class="tag tag-exec">EXECUTE</span></td><td>D1 decisions 8 ข้อ, สร้าง 12 user stories</td></tr>
+<tr><td>User Stories</td><td><span class="tag tag-exec">EXECUTE</span></td><td>รวมอยู่ในขั้นตอน Requirements (generated 12 stories)</td></tr>
+<tr><td>Workflow Planning</td><td><span class="tag tag-exec">EXECUTE</span></td><td>ผู้ใช้เลือก decomposition แทน design ตรง (override)</td></tr>
+<tr><td>Application Design</td><td><span class="tag tag-exec">EXECUTE</span></td><td>D3 decisions 12 ข้อ, สร้าง 7 design files</td></tr>
+<tr><td>Units Generation</td><td><span class="tag tag-exec">EXECUTE</span></td><td>4 units, แก้ไขให้ 3 Dev + 1 BA ทำ parallel</td></tr>
+<tr><td>Construction</td><td><span class="tag tag-exec">EXECUTE</span></td><td>28 tasks, 3 waves, code committed</td></tr>
+<tr><td>Build and Test</td><td><span class="tag tag-exec">EXECUTE</span></td><td>QA 52 test cases → 57/57 (5 defects found &amp; fixed)</td></tr>
+</table>
+<p><strong>รวม:</strong> Execute อย่างน้อย 8 stages &middot; 4 Units of Work &middot; ไม่มี SKIP ที่บันทึกไว้</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 6: Extension decision -->
+<div class="slide">
+<h1>4. Extension Decision</h1>
+<table>
+<tr><th>Extension</th><th>ตัดสินใจ</th><th>เหตุผลที่บันทึก</th></tr>
+<tr><td>Security</td><td>ไม่ได้บันทึกไว้</td><td class="empty">ไม่มีบันทึกในไฟล์ใด</td></tr>
+<tr><td>Resiliency</td><td>ไม่ได้บันทึกไว้</td><td class="empty">ไม่มีบันทึกในไฟล์ใด</td></tr>
+<tr><td>Property-Based Testing</td><td>ปฏิเสธ (OUT)</td><td>decisions-design.md D3-9: เลือกตัวเลือก 3 — "Replay test is sufficient — expected-points.csv covers all edge cases"</td></tr>
+</table>
+<p class="note">README.md ระบุว่าทีมควร decline ทั้งสาม extension พร้อมบันทึกเหตุผล — แต่มีเพียง PBT ที่มีเหตุผลบันทึกใน decision file</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 7: Timeline (1/2) -->
+<div class="slide">
+<h1>5. สองวัน ตามลำดับเวลา (1/2)</h1>
+<table>
+<tr><th>เวลา</th><th>เหตุการณ์</th><th>แหล่งข้อมูล</th></tr>
+<tr><td class="timestamp">19 ส.ค. 13:22</td><td>Context assessment — brownfield detected</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:28</td><td>Context approved → gate ผ่าน</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:30</td><td>Requirements D1 decisions filled</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:32</td><td>12 user stories generated → gate ผ่าน</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:35</td><td>User override: เลือก decomposition แทน design</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:36</td><td>Decomposition D2 decisions filled</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:40</td><td>User edit: redistribute units สำหรับ 3 Dev + 1 BA</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:42</td><td>Decomposition approved → gate ผ่าน</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:45</td><td>Design D3 decisions filled (12 ข้อ)</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:50</td><td>Design approved (7 files) → gate ผ่าน</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:54</td><td>Tasks D4 decisions filled</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 13:57</td><td>Tasks approved (28 tasks, 3 waves) → gate ผ่าน</td><td>audit.md</td></tr>
+</table>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 8: Timeline (2/2) -->
+<div class="slide">
+<h1>5. สองวัน ตามลำดับเวลา (2/2)</h1>
+<table>
+<tr><th>เวลา</th><th>เหตุการณ์</th><th>แหล่งข้อมูล</th></tr>
+<tr><td class="timestamp">19 ส.ค. 14:10</td><td>เพิ่ม Unit 4: QA Testing (Test1, 52 test cases)</td><td>audit.md</td></tr>
+<tr><td class="timestamp">19 ส.ค. 15:02</td><td>Commit: AI-DLC specs ทั้งหมด (first commit)</td><td>git a53f05c</td></tr>
+<tr><td class="timestamp">19 ส.ค. 15:21</td><td>Commit: Customer-Service UI (React + Ant Design)</td><td>git a113c18</td></tr>
+<tr><td class="timestamp">19 ส.ค. 15:27</td><td>Commit: Expiry job + test foundation + ops infra</td><td>git c3d0979</td></tr>
+<tr><td class="timestamp">19 ส.ค. 15:41</td><td>PR #1 &amp; #2 merged (Dev A + Dev B)</td><td>git 7190fb4, 4c9818d</td></tr>
+<tr><td class="timestamp">19 ส.ค. 16:04</td><td>Commit: Test plan (52 cases) + presentation</td><td>git a8875e4</td></tr>
+<tr><td class="timestamp">19 ส.ค. 16:12</td><td>Commit: Dev C test cases → PR #3 merged</td><td>git a45a93f, 8ebbf00</td></tr>
+<tr><td class="timestamp">20 ส.ค. 09:11</td><td>Commit: Cypress automation suite (Unit 4)</td><td>git 619d26b</td></tr>
+<tr><td class="timestamp">20 ส.ค. 09:44</td><td>PR #4 merged (QA automation)</td><td>git 7a13862</td></tr>
+<tr><td class="timestamp">20 ส.ค. 09:53</td><td>Commit: fix 4 QA defects → PR #5 merged</td><td>git 35b217a, 85ef270</td></tr>
+<tr><td class="timestamp">20 ส.ค. 10:13</td><td>QA re-test: 2 closed, 2 reopened, DEF-005 raised</td><td>git 39a115b</td></tr>
+<tr><td class="timestamp">20 ส.ค. 10:40</td><td>Commit: fix DEF-005 → PR #6 merged</td><td>git cdcbeae, 0129b67</td></tr>
+<tr><td class="timestamp">20 ส.ค. 10:55</td><td>QA verify: all 5 defects closed, 57/57 green</td><td>git eb09743</td></tr>
+<tr><td class="timestamp">20 ส.ค. 11:00</td><td>PR #7 merged (Dev C final) — last commit</td><td>git be46e32</td></tr>
+</table>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 9: Questions and answers (1/2) -->
+<div class="slide">
+<h1>6. คำถามที่ workflow ถาม และคำตอบของเรา (1/2)</h1>
+<p class="subtitle">จาก decisions-requirements.md (D1)</p>
+<table>
+<tr><th>คำถาม (ย่อ)</th><th>คำตอบ</th><th>แหล่งที่มา</th></tr>
+<tr><td>Feature Scope</td><td>Feature completion (สร้างเฉพาะส่วนที่ขาด)</td><td>not recorded</td></tr>
+<tr><td>CS UI Approach</td><td>React/Vue SPA with build step</td><td>not recorded</td></tr>
+<tr><td>Expiry Job</td><td>Hybrid: script + API endpoint via cron</td><td>not recorded</td></tr>
+<tr><td>Testing Strategy</td><td>Full coverage (unit + route + integration)</td><td>not recorded</td></tr>
+<tr><td>Business Rules Confirmation</td><td>All correct as stated (negative balances allowed)</td><td>not recorded</td></tr>
+<tr><td>Personas</td><td>Partial — CS agents only</td><td>not recorded</td></tr>
+<tr><td>Team Size</td><td>Medium (4–8)</td><td>not recorded</td></tr>
+<tr><td>NFR</td><td>Performance only (p95 &lt; 150ms)</td><td>not recorded</td></tr>
+</table>
+<p class="note">คำตอบทั้งหมดบันทึกในไฟล์ decision แต่ไม่มีการอ้างอิงว่ามาจากเอกสารหรือ stakeholder ใด</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 10: Questions and answers (2/2) -->
+<div class="slide">
+<h1>6. คำถามที่ workflow ถาม และคำตอบของเรา (2/2)</h1>
+<p class="subtitle">จาก decisions-design.md (D3) — คัดมาเฉพาะที่น่าสนใจ</p>
+<table>
+<tr><th>คำถาม (ย่อ)</th><th>คำตอบ</th><th>แหล่งที่มา</th></tr>
+<tr><td>Frontend Framework</td><td>React (ไม่ตาม recommendation Vue)</td><td>not recorded</td></tr>
+<tr><td>Build Tool</td><td>Webpack (ไม่ตาม recommendation Vite)</td><td>not recorded</td></tr>
+<tr><td>UI Styling</td><td>"use ant" (Ant Design — ไม่ตาม recommendation Tailwind)</td><td>not recorded</td></tr>
+<tr><td>Test Framework</td><td>Jest (ไม่ตาม recommendation Vitest)</td><td>not recorded</td></tr>
+<tr><td>Correctness Testing</td><td>Replay test is sufficient (ปฏิเสธ PBT)</td><td>not recorded</td></tr>
+<tr><td>Observability</td><td>Standard (logging + metrics + health + readiness)</td><td>not recorded</td></tr>
+<tr><td>Lifecycle</td><td>Full (health + readiness + graceful shutdown + startup probe)</td><td>not recorded</td></tr>
+</table>
+<p class="note">ทีมเลือกต่างจาก recommended ใน 4 ข้อ (React, Webpack, Ant Design, Jest) แต่ไม่ได้บันทึกเหตุผลของการเลือก</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 11: Decisions -->
+<div class="slide">
+<h1>7. การตัดสินใจที่สำคัญ</h1>
+<p class="subtitle">จาก decision files (ไม่มีบันทึกใน team-log.md)</p>
+<table>
+<tr><th>การตัดสินใจ</th><th>เหตุผลที่บันทึก</th><th>เมื่อไหร่</th></tr>
+<tr><td>เลือก decomposition แทน design ตรง</td><td>User override (audit.md)</td><td class="timestamp">19 ส.ค. 13:35</td></tr>
+<tr><td>Redistribute units → 3 Dev + 1 BA parallel</td><td>"maximize parallelism" (audit.md)</td><td class="timestamp">19 ส.ค. 13:40</td></tr>
+<tr><td>เลือก React + Ant Design</td><td>ไม่ได้บันทึกเหตุผลไว้</td><td class="timestamp">19 ส.ค. 13:45</td></tr>
+<tr><td>เลือก Webpack แทน Vite</td><td>ไม่ได้บันทึกเหตุผลไว้</td><td class="timestamp">19 ส.ค. 13:45</td></tr>
+<tr><td>เลือก Jest แทน Vitest</td><td>ไม่ได้บันทึกเหตุผลไว้</td><td class="timestamp">19 ส.ค. 13:45</td></tr>
+<tr><td>ปฏิเสธ PBT — replay test เพียงพอ</td><td>"expected-points.csv covers all edge cases"</td><td class="timestamp">19 ส.ค. 13:45</td></tr>
+<tr><td>เพิ่ม Unit 4: QA Testing (Test1)</td><td>not recorded (audit.md entry only)</td><td class="timestamp">19 ส.ค. 14:10</td></tr>
+</table>
+<p class="note">team-log.md ว่างเปล่า — การตัดสินใจทั้งหมดอยู่ใน decision files ของ workflow เท่านั้น ไม่มี "why" ของมนุษย์ที่บันทึกแยก</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 12: Where we changed our minds -->
+<div class="slide">
+<h1>8. จุดที่เราเปลี่ยนใจ</h1>
+<table>
+<tr><th>เหตุการณ์</th><th>อะไรเปลี่ยน</th><th>ทำไม</th></tr>
+<tr><td>Decomposition edit (13:40)</td><td>เดิม 4 units ตาม agent เสนอ → redistribute เป็น 3 Dev units parallel + 1 BA</td><td>"maximize parallelism" — audit.md</td></tr>
+<tr><td>Routing override (13:35)</td><td>Agent แนะนำไปต่อที่ Design → ผู้ใช้เลือก Decomposition ก่อน</td><td>not recorded</td></tr>
+<tr><td>DEF-002 fix → reopen → refix</td><td>PR #5 fix ใช้ UTC getters ซึ่งผิดเหมือนเดิม → DEF-005 raised → PR #6 fix ใช้ <code>::text</code> cast จาก SQL</td><td>test-plan-test1.md DEF-002, DEF-005</td></tr>
+<tr><td>DEF-004 fix → reopen → refix</td><td>Same root cause เดียวกับ DEF-002 — date formatting shifted by TZ</td><td>test-plan-test1.md DEF-004, DEF-005</td></tr>
+</table>
+<p class="note">ไม่มี gate ที่ถูก request changes (audit.md ไม่มี record ของ gate rejection ใด ๆ)</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 13: DIVIDER -->
+<div class="slide divider-slide">
+<h1>เราได้อะไรบ้าง</h1>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 14: What we have now -->
+<div class="slide">
+<h1>9. สิ่งที่มีตอนนี้ ที่ไม่เคยมีเมื่อสองวันก่อน</h1>
+<div class="cols">
+<div>
+<h3>Artifacts</h3>
+<ul>
+<li>22 ไฟล์ใน .aidlc/ (specs + workflow)</li>
+<li>19 commits, ~20 ชั่วโมง (15:02 วันที่ 19 ถึง 11:00 วันที่ 20)</li>
+<li>7 PR merged</li>
+<li>32 decisions บันทึกใน 4 decision files</li>
+<li>5 gates ผ่าน (context, requirements, decomposition, design, tasks)</li>
+</ul>
+</div>
+<div>
+<h3>Software</h3>
+<ul>
+<li>Express API server — 15 endpoints</li>
+<li>Customer-Service UI (React + Ant Design SPA)</li>
+<li>Point expiry job + admin endpoint</li>
+<li>17 test files (unit + route + integration)</li>
+<li>Cypress QA suite: 57 tests ผ่านทั้งหมด</li>
+<li>5 defects พบและปิดครบ</li>
+</ul>
+</div>
+</div>
+<p class="note">team-log.md: 0 decisions &middot; traceability-worksheet.md: ไม่ได้กรอก</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 15: What the process caught before it was built -->
+<div class="slide">
+<h1>10. สิ่งที่ process จับได้ก่อนเขียน code</h1>
+<p class="subtitle">การตัดสินใจที่บันทึกไว้ก่อนที่ code จะมี — เปรียบเทียบ timestamp</p>
+<table>
+<tr><th>การตัดสินใจ</th><th>บันทึกเมื่อ</th><th>Code commit แรก</th><th>ห่างกัน</th></tr>
+<tr><td>React + Ant Design + Webpack (D3-1/2/3)</td><td class="timestamp">19 ส.ค. 13:45</td><td class="timestamp">19 ส.ค. 15:21 (a113c18)</td><td>1 ชม. 36 นาที</td></tr>
+<tr><td>Jest + real test DB (D3-4/5)</td><td class="timestamp">19 ส.ค. 13:45</td><td class="timestamp">19 ส.ค. 15:27 (c3d0979)</td><td>1 ชม. 42 นาที</td></tr>
+<tr><td>Expiry = hybrid script + API (D1-3)</td><td class="timestamp">19 ส.ค. 13:30</td><td class="timestamp">19 ส.ค. 15:27 (c3d0979)</td><td>1 ชม. 57 นาที</td></tr>
+<tr><td>4 units: CS UI / Expiry+Foundation / Validation / QA</td><td class="timestamp">19 ส.ค. 13:42</td><td class="timestamp">19 ส.ค. 15:02 (a53f05c)</td><td>1 ชม. 20 นาที</td></tr>
+<tr><td>PBT declined — replay sufficient (D3-9)</td><td class="timestamp">19 ส.ค. 13:45</td><td class="timestamp">19 ส.ค. 16:12 (a45a93f)</td><td>2 ชม. 27 นาที</td></tr>
+</table>
+<p>ทุกการตัดสินใจออกแบบถูกบันทึก 1–2 ชั่วโมงก่อน code commit แรกของส่วนนั้น</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 16: Contradictions -->
+<div class="slide">
+<h1>11. ความขัดแย้งที่ถูกแก้ไข</h1>
+<table>
+<tr><th>อะไรขัดกัน</th><th>แก้อย่างไร</th><th>ใครตัดสิน</th><th>บันทึกที่ไหน</th></tr>
+<tr><td>D2-1 เลือก "Single Unit" แต่ D2-4 เลือก "4 units"</td><td>ตีความว่า logical modules ภายใน monolith</td><td>workflow (auto-resolved)</td><td>audit.md: "Minor note: D2-1 slightly conflicts with D2-4 — resolved as logical modules in monolith"</td></tr>
+<tr><td>DEF-002/005: toISOString() shifts date in UTC+7</td><td>ใช้ SQL <code>::text</code> cast แทน JS Date object</td><td>Dev B (code fix)</td><td>test-plan-test1.md DEF-002, DEF-005</td></tr>
+</table>
+<p class="empty">team-log.md "Contradictions we found in the inputs" — ไม่ได้กรอก</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 17: What we deliberately did not build -->
+<div class="slide">
+<h1>12. สิ่งที่ตั้งใจไม่สร้าง</h1>
+<table>
+<tr><th>สิ่งที่ไม่ได้ทำ</th><th>เหตุผลที่บันทึก</th><th>บันทึกที่ไหน</th></tr>
+<tr><td>Marketing Campaign UI</td><td>vision-document.md: "Phase 2" — not in MVP scope</td><td>vision-document.md (Out of Scope section)</td></tr>
+<tr><td>Partner point exchange</td><td>vision-document.md: "Phase 2"</td><td>vision-document.md</td></tr>
+<tr><td>Real-time fraud detection</td><td>vision-document.md: "Phase 2"</td><td>vision-document.md</td></tr>
+<tr><td>Property-Based Testing</td><td>"Replay test is sufficient" (D3-9)</td><td>decisions-design.md</td></tr>
+<tr><td>BI / Data warehouse integration</td><td>vision-document.md: "Phase 2"</td><td>vision-document.md</td></tr>
+</table>
+<p class="note">team-log.md "Scope we pushed back on" — ไม่ได้กรอก ข้อมูลข้างต้นมาจาก vision-document.md และ decisions file</p>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 18: The honest cost -->
+<div class="slide">
+<h1>13. ต้นทุนที่แท้จริง</h1>
+<div class="cols">
+<div>
+<h3>ตัวเลข</h3>
+<ul>
+<li>Commit แรก → สุดท้าย: <strong>~20 ชั่วโมง</strong> (15:02 ถึง 11:00 วันถัดไป)</li>
+<li>Spec phase (context → tasks approved): <strong>35 นาที</strong> (13:22–13:57)</li>
+<li>จำนวน decision questions: <strong>32 ข้อ</strong> (D1: 8, D2: 6, D3: 12, D4: 6)</li>
+<li>Gates ผ่าน: <strong>5</strong></li>
+<li>Gates ที่ request changes: <strong>0</strong></li>
+<li>Defects พบโดย QA: <strong>5</strong> (ปิดทั้งหมด)</li>
+<li>Defects ที่ reopen: <strong>2</strong> (DEF-002, DEF-004)</li>
+</ul>
+</div>
+<div>
+<h3>สิ่งที่ไม่สมบูรณ์</h3>
+<ul>
+<li>team-log.md — ไม่ได้กรอกเลย (0 decisions, 0 roles, 0 retro)</li>
+<li>traceability-worksheet.md — ไม่ได้กรอกเลย</li>
+<li>Hand edits — ไม่ได้บันทึก</li>
+<li>Extension decision (Security, Resiliency) — ไม่มี record</li>
+</ul>
+</div>
+</div>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 19: Retro frictions -->
+<div class="slide">
+<h1>14. Frictions จาก retro</h1>
+<div class="card">
+<p class="empty">ยังไม่ได้บันทึกไว้</p>
+<p class="note">team-log.md section "Retro" ว่างเปล่า — ไม่มี friction ที่ทีมเขียนไว้</p>
+</div>
+<span class="slide-number"></span>
+</div>
+
+<!-- SLIDE 20: What we would take to a real project -->
+<div class="slide">
+<h1>15. สิ่งที่เราจะนำไปใช้ในโปรเจกต์จริง</h1>
+<div class="card">
+<p class="empty">ยังไม่ได้บันทึกไว้</p>
+</div>
+<span class="slide-number"></span>
+</div>
+
+<button class="nav-btn prev" id="btnPrev" aria-label="Previous slide">&#9664;</button>
+<button class="nav-btn next" id="btnNext" aria-label="Next slide">&#9654;</button>
+</div><!-- end stage -->
+
+<script>
+(function(){
+var slides=document.querySelectorAll('.slide');
+var current=0;
+var total=slides.length;
+var btnPrev=document.getElementById('btnPrev');
+var btnNext=document.getElementById('btnNext');
+
+function show(n){
+  for(var i=0;i<slides.length;i++){
+    slides[i].style.display=(i===n)?'flex':'none';
+    slides[i].className=slides[i].className.replace(' active','');
+    if(i===n) slides[i].className+=' active';
+  }
+  var nums=document.querySelectorAll('.slide-number');
+  for(var j=0;j<nums.length;j++){nums[j].textContent=(j+1)+' / '+total}
+  btnPrev.disabled=(n===0);
+  btnNext.disabled=(n===total-1);
+}
+
+function resize(){
+  var stage=document.getElementById('stage');
+  var w=window.innerWidth,h=window.innerHeight;
+  var scale=Math.min(w/1280,h/720);
+  stage.style.transform='translate(-50%,-50%) scale('+scale+')';
+}
+
+function next(){if(current<total-1){current++;show(current)}}
+function prev(){if(current>0){current--;show(current)}}
+
+btnNext.addEventListener('click',function(e){e.stopPropagation();next()});
+btnPrev.addEventListener('click',function(e){e.stopPropagation();prev()});
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();next()}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();prev()}
+  else if(e.key==='f'){
+    if(!document.fullscreenElement)document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  else if(e.key==='p'){window.print()}
+});
+
+document.addEventListener('click',function(e){
+  if(e.target===btnPrev||e.target===btnNext) return;
+  if(e.clientX>window.innerWidth/2) next(); else prev();
+});
+
+window.addEventListener('resize',resize);
+resize();
+show(0);
+})();
+</script>
+
+<style>
+@media print{
+  body{overflow:visible;background:#fff}
+  .stage{position:relative;transform:none!important;top:0;left:0}
+  .slide{display:flex!important;page-break-after:always;break-after:page}
+  .nav-btn{display:none!important}
+}
+</style>
+</body>
+</html>

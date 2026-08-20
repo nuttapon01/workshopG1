@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
 import { calculateBasketPoints } from '../../src/engine/calculate-points';
-import { getTestPool, seedMembers, seedCampaigns, clearAll } from '../helpers';
+import { getTestPool, seedCampaigns, clearAll } from '../helpers';
 
 /**
  * Campaign matching tests.

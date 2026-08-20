@@ -67,9 +67,15 @@ export async function seedCampaigns(
          name = $2, multiplier_millipercent = $3, category = $4, tier = $5,
          day_of_week = $6, start_date = $7, end_date = $8, priority = $9, is_active = true`,
       [
-        c.id, c.name, c.multiplier,
-        c.category ?? null, c.tier ?? null, c.dayOfWeek ?? null,
-        c.startDate ?? null, c.endDate ?? null, c.priority ?? 0,
+        c.id,
+        c.name,
+        c.multiplier,
+        c.category ?? null,
+        c.tier ?? null,
+        c.dayOfWeek ?? null,
+        c.startDate ?? null,
+        c.endDate ?? null,
+        c.priority ?? 0,
       ]
     );
   }

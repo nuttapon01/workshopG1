@@ -24,9 +24,7 @@ describe('POST /api/refund', () => {
 
   beforeEach(async () => {
     await clearAll(pool);
-    await seedMembers(pool, [
-      { id: 'M001', tier: 'GOLD', joinedAt: '2020-01-15' },
-    ]);
+    await seedMembers(pool, [{ id: 'M001', tier: 'GOLD', joinedAt: '2020-01-15' }]);
     await seedCampaigns(pool, [
       {
         id: 'C1',
@@ -90,8 +88,6 @@ describe('POST /api/refund', () => {
 
   describe('partial refund', () => {
     it('recomputes basket without refunded lines and claws back the difference', async () => {
-      const originalBalance = await getBalance(pool, 'M001');
-
       // Refund only line 1 (FRESH 200 THB at x3)
       const res = await apiClient()
         .post('/api/refund')
@@ -103,9 +99,7 @@ describe('POST /api/refund', () => {
           storeId: 'S001',
           memberId: 'M001',
           tier: 'GOLD',
-          lines: [
-            { lineNo: 1, category: 'FRESH', amountTHB: -200 },
-          ],
+          lines: [{ lineNo: 1, category: 'FRESH', amountTHB: -200 }],
         })
         .set('Content-Type', 'application/json');
 
