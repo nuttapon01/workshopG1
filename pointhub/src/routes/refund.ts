@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { calculateBasketPoints, TransactionLine } from '../engine/calculate-points';
-import { formatPgDate } from '../utils/date';
 
 export const refundRouter = Router();
 
@@ -48,9 +47,9 @@ refundRouter.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    // Get the original transaction
+    // Get the original transaction — cast date to text to avoid JS Date timezone issues
     const origTx = await pool.query(
-      'SELECT * FROM transactions WHERE transaction_id = $1',
+      'SELECT *, date::text AS date_str FROM transactions WHERE transaction_id = $1',
       [originalTransactionId]
     );
     if (origTx.rows.length === 0) {
@@ -88,9 +87,9 @@ refundRouter.post('/', async (req: Request, res: Response) => {
           amountTHB: ol.amount_thb,
         }));
 
-      // Recompute with original date and tier
+      // Recompute with original date and tier — use date_str (text from SQL) to avoid timezone shift
       const { pointsPosted: recomputedPoints } = await calculateBasketPoints(
-        remainingLines, original.tier, formatPgDate(original.date)
+        remainingLines, original.tier, original.date_str
       );
 
       // Claw back = original - recomputed
