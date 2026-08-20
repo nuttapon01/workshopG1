@@ -9,7 +9,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/db/migrate.ts', 'src/db/seed.ts', 'src/scripts/**'],
+      // index.ts is the server bootstrap (listen + signal handlers). Tests drive
+      // src/app.ts instead, so counting it would just depress the numbers.
+      exclude: ['src/index.ts', 'src/db/migrate.ts', 'src/db/seed.ts', 'src/scripts/**'],
     },
     // Separate test pools for unit vs integration
     fileParallelism: false, // integration tests share DB state

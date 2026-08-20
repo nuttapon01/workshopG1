@@ -3,14 +3,26 @@ import { Pool } from 'pg';
 /**
  * Creates a Pool connected to the test database.
  * Uses the same env vars as the app pool.
+ *
+ * Guarded: helpers here truncate whole tables, so refuse to hand back a pool
+ * pointing at anything other than a *_test database.
  */
 export function getTestPool(): Pool {
+  const database = process.env.DB_NAME || 'pointhub_test';
+
+  if (!/_test$/.test(database)) {
+    throw new Error(
+      `Refusing to open a test pool against "${database}". Test helpers delete all ` +
+        'rows; the target database name must end with "_test". Check DB_NAME.'
+    );
+  }
+
   return new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432', 10),
     user: process.env.DB_USER || 'pointhub',
     password: process.env.DB_PASSWORD || 'pointhub',
-    database: process.env.DB_NAME || 'pointhub_test',
+    database,
   });
 }
 

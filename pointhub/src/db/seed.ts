@@ -1,31 +1,92 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import pool from './pool';
 
 /**
- * Seeds: members from sample data and the 5 campaigns from marketing.
+ * Seeds reference data:
+ *   - members: read from sample-data/members.csv (single source of truth)
+ *   - campaigns: the 5 campaigns from sample-data/campaign-examples.md
+ *
+ * Transactions are NOT seeded here on purpose — points must be produced by the
+ * earn/refund engine so Finance can replay them. Load those with `npm run replay`
+ * against a running API.
+ *
+ * Usage:
+ *   npm run seed            reference data only (idempotent upsert)
+ *   npm run seed -- --reset also clears transactions / lines / ledger first,
+ *                           so a following replay starts from a clean slate
  */
-async function seed() {
-  console.log('Seeding database...');
 
-  // Seed members
-  const members = [
-    { id: 'M1001', tier: 'GOLD', joinedAt: '2019-03-14' },
-    { id: 'M1002', tier: 'SILVER', joinedAt: '2023-11-02' },
-    { id: 'M1003', tier: 'PLATINUM', joinedAt: '2017-06-21' },
-    { id: 'M1004', tier: 'SILVER', joinedAt: '2024-02-09' },
-    { id: 'M1005', tier: 'GOLD', joinedAt: '2021-08-30' },
-    { id: 'M1006', tier: 'SILVER', joinedAt: '2025-01-17' },
-    { id: 'M1007', tier: 'PLATINUM', joinedAt: '2016-10-05' },
-    { id: 'M1008', tier: 'GOLD', joinedAt: '2022-05-26' },
-  ];
+const SAMPLE_DATA_DIR = path.join(__dirname, '..', '..', '..', 'sample-data');
+
+interface MemberRow {
+  memberId: string;
+  tier: string;
+  joinedAt: string;
+}
+
+function readMembersCsv(filePath: string): MemberRow[] {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const lines = content.trim().split('\n');
+  const header = lines[0].split(',').map((h) => h.trim());
+
+  const idx = {
+    memberId: header.indexOf('memberId'),
+    tier: header.indexOf('tier'),
+    joinedAt: header.indexOf('joinedAt'),
+  };
+
+  for (const [field, position] of Object.entries(idx)) {
+    if (position === -1) {
+      throw new Error(`members.csv is missing the "${field}" column (found: ${header.join(', ')})`);
+    }
+  }
+
+  return lines
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const values = line.split(',').map((v) => v.trim());
+      return {
+        memberId: values[idx.memberId],
+        tier: values[idx.tier],
+        joinedAt: values[idx.joinedAt],
+      };
+    });
+}
+
+async function reset() {
+  console.log('  --reset: clearing transactions, transaction_lines, points_ledger');
+  await pool.query(
+    'TRUNCATE transaction_lines, transactions, points_ledger RESTART IDENTITY CASCADE'
+  );
+}
+
+async function seed() {
+  const shouldReset = process.argv.includes('--reset');
+
+  console.log('Seeding database...');
+  console.log(`  sample data: ${SAMPLE_DATA_DIR}`);
+
+  if (shouldReset) {
+    await reset();
+  }
+
+  // Members — from sample-data/members.csv
+  const members = readMembersCsv(path.join(SAMPLE_DATA_DIR, 'members.csv'));
+  if (members.length === 0) {
+    throw new Error('members.csv contained no data rows');
+  }
 
   for (const m of members) {
     await pool.query(
       `INSERT INTO members (member_id, tier, joined_at) VALUES ($1, $2, $3)
        ON CONFLICT (member_id) DO UPDATE SET tier = $2, joined_at = $3`,
-      [m.id, m.tier, m.joinedAt]
+      [m.memberId, m.tier, m.joinedAt]
     );
   }
-  console.log(`  Seeded ${members.length} members`);
+  console.log(`  Seeded ${members.length} members from members.csv`);
 
   // Seed campaigns
   // multiplier_millipercent: multiplier * 1000 (so x3 = 3000, x2.5 = 2500)
@@ -72,6 +133,7 @@ async function seed() {
   console.log(`  Seeded ${campaigns.length} campaigns`);
 
   console.log('Seeding complete.');
+  console.log('Next: start the API (npm run dev) then load transactions with npm run replay');
   await pool.end();
 }
 

@@ -159,18 +159,33 @@ const EXPECTED_BALANCES: Record<string, number> = {
   M1008: 78,
 };
 
-// Members and campaigns matching seed.ts
-const INTEGRATION_MEMBERS = [
-  { id: 'M1001', tier: 'GOLD', joinedAt: '2019-03-14' },
-  { id: 'M1002', tier: 'SILVER', joinedAt: '2023-11-02' },
-  { id: 'M1003', tier: 'PLATINUM', joinedAt: '2017-06-21' },
-  { id: 'M1004', tier: 'SILVER', joinedAt: '2024-02-09' },
-  { id: 'M1005', tier: 'GOLD', joinedAt: '2021-08-30' },
-  { id: 'M1006', tier: 'SILVER', joinedAt: '2025-01-17' },
-  { id: 'M1007', tier: 'PLATINUM', joinedAt: '2016-10-05' },
-  { id: 'M1008', tier: 'GOLD', joinedAt: '2022-05-26' },
-];
+/**
+ * Members come from sample-data/members.csv — the same source src/db/seed.ts
+ * reads. Keeping a hardcoded copy here would silently drift from the seed.
+ */
+function readMembersCsv(filePath: string): Array<{ id: string; tier: string; joinedAt: string }> {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const lines = content.trim().split('\n');
+  const header = lines[0].split(',').map(h => h.trim());
+  const iId = header.indexOf('memberId');
+  const iTier = header.indexOf('tier');
+  const iJoined = header.indexOf('joinedAt');
 
+  if (iId === -1 || iTier === -1 || iJoined === -1) {
+    throw new Error(`members.csv missing expected columns (found: ${header.join(', ')})`);
+  }
+
+  return lines
+    .slice(1)
+    .map(l => l.trim())
+    .filter(l => l.length > 0)
+    .map(l => {
+      const v = l.split(',').map(s => s.trim());
+      return { id: v[iId], tier: v[iTier], joinedAt: v[iJoined] };
+    });
+}
+
+// Campaigns matching seed.ts (source: sample-data/campaign-examples.md)
 const INTEGRATION_CAMPAIGNS = [
   {
     id: 'C1', name: 'Fresh Weekend', multiplier: 3000,
@@ -207,12 +222,16 @@ describe('Integration: Full Transaction Replay', () => {
   beforeAll(async () => {
     pool = getTestPool();
     await clearAll(pool);
-    await seedMembers(pool, INTEGRATION_MEMBERS);
-    await seedCampaigns(pool, INTEGRATION_CAMPAIGNS);
 
     // Parse CSV files
+    const membersCsvPath = path.resolve(__dirname, '../../../sample-data/members.csv');
     const txCsvPath = path.resolve(__dirname, '../../../sample-data/transactions.csv');
     const expectedCsvPath = path.resolve(__dirname, '../../../sample-data/expected-points.csv');
+
+    const members = readMembersCsv(membersCsvPath);
+    expect(members.length).toBeGreaterThan(0);
+    await seedMembers(pool, members);
+    await seedCampaigns(pool, INTEGRATION_CAMPAIGNS);
 
     const rows = parseCsv(txCsvPath);
     transactions = groupByTransactionId(rows);

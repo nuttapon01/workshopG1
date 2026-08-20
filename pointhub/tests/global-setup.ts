@@ -2,8 +2,21 @@ import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-const TEST_DB = process.env.DB_NAME || 'pointhub_test';
+/**
+ * The test database name is read from TEST_DB_NAME, never from DB_NAME.
+ * This file DROPs the database it is given, so taking that name from the same
+ * variable the app uses would let a stray `DB_NAME=pointhub` in the environment
+ * destroy the seeded development database.
+ */
+const TEST_DB = process.env.TEST_DB_NAME || 'pointhub_test';
 const ADMIN_DB = 'postgres';
+
+if (!/_test$/.test(TEST_DB)) {
+  throw new Error(
+    `Refusing to run: TEST_DB_NAME must end with "_test" (got "${TEST_DB}"). ` +
+      'The test harness drops and recreates this database.'
+  );
+}
 
 /**
  * Global setup: create the test database, run migrations, seed base data.
@@ -114,8 +127,6 @@ export async function setup() {
  * Global teardown: drop the test database.
  */
 export async function teardown() {
-  const TEST_DB = process.env.DB_NAME || 'pointhub_test';
-
   const adminPool = new Pool({
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432', 10),

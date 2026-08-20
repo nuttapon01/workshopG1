@@ -1,9 +1,12 @@
 import request from 'supertest';
-import app from '../../src/index';
+import app from '../../src/app';
 
 /**
  * Supertest-based API client for integration tests.
  * Wraps the Express app directly — no need to start a server.
+ *
+ * Imports src/app (not src/index) on purpose: src/index binds port 3000, which
+ * would collide with a running dev server.
  */
 export function apiClient() {
   return request(app);
